@@ -1,0 +1,48 @@
+name: Salesforce 2GP Package Version Create Action
+description: Create a new package version for a Salesforce package
+
+inputs:
+  package:
+    description: ID (starts with 0Ho) or alias of the package to create a version of.
+    required: true
+  target-dev-hub:
+    description: Username or alias of the Dev Hub org. Not required if the `target-dev-hub` configuration variable is already set.
+    required: true
+  installation-key-bypass:
+    description: |
+      Bypass the installation key requirement. (either --installation-key or --installation-key-bypass is required)
+      If you bypass this requirement, anyone can install your package.
+    required: false
+  skip-validation:
+    description: |
+      Skip validation during package version creation; you can’t promote unvalidated package versions.
+      Skips validation of dependencies, package ancestors, and metadata during package version creation.
+      Skipping validation reduces the time it takes to create a new package version, but you can promote only validated package versions.
+      Skipping validation can suppress important errors that can surface at a later stage.
+      You can specify skip validation or code coverage, but not both.
+      Code coverage is calculated during validation.
+    required: false
+  code-coverage:
+    description: |
+      Calculate and store the code coverage percentage by running the packaged Apex tests included in this package version.
+      Before you can promote and release a managed or unlocked package version, the Apex code must meet a
+      minimum 75% code coverage requirement. We don’t calculate code coverage for org-dependent unlocked packages or
+      for package versions that specify --skip-validation.
+    required: false
+  async-validation: 
+    description: |
+      Return a new package version before completing package validations.
+      Specifying async validation returns the package version earlier in the process, allowing you to install and test the new version right away.
+      If your development team is using continuous integration (CI) scripts, async validation can reduce your overall CI run time.
+    required: false
+
+outputs:
+  package-version-id: # id of output
+    description: The package version id
+
+runs:
+  using: node20
+  main: dist/index.js
+
+
+sf package version create --package "Cuneiform for CRM: Field and Data Management" --installation-key-bypass --target-dev-hub devHub00 --code-coverage

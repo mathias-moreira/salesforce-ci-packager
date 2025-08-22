@@ -1,0 +1,20 @@
+{
+  "name": "salesforce-2gp-package-version-create-action",
+  "version": "1.0.0",
+  "description": "Create a new package version for a Salesforce package",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "rollup --config rollup.config.js",
+    "start": "act --container-architecture linux/amd64 --artifact-server-path -s"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "rollup": "^4.46.4"
+  }
+}

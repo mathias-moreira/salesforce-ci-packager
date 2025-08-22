@@ -1,0 +1,71 @@
+on:
+  push:
+    branches:
+      - master
+env:
+  DEV_HUB_ALIAS: MathiasDevHub
+  AUTH_URL: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  create-package-version:
+    name: Create package version
+    runs-on: ubuntu-latest
+
+    steps:
+      # To use this repository's private action,
+      # you must check out the reposito
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: mathias-moreira/packaging-automation-tests
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: "Cache Global npm (Salesforce CLI)"
+        id: cache-npm-global
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+            /usr/local/lib/node_modules
+          key: ${{ runner.os }}-npm-global-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-global-
+
+      - name: Populate auth file with AUTH_URL secret
+        shell: bash
+        run: |
+          echo ${{ env.AUTH_URL}} > ./DEVHUB_SFDX_URL.txt
+          secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
+          if [ $secretFileSize == 1 ]; then
+              echo "Missing AUTH_URL secret. Is this workflow running on a fork?";
+              exit 1;
+          fi
+
+      - name: Install Salesforce CLI
+        if: steps.cache-npm-global.outputs.cache-hit != 'true'
+        run: npm install @salesforce/cli --global
+
+      - name: Authenticate Dev Hub
+        run: npx sf org login sfdx-url -f ./DEVHUB_SFDX_URL.txt -a ${{ env.DEV_HUB_ALIAS }} -d
+
+      - name: Create package version
+        uses: ./ # Uses an action in the root directory
+        id: create-package-version
+        with:
+          package: 0Ho1A0000000000
+          target-dev-hub: devHub00
+          installation-key-bypass: true
+          skip-validation: true
+          code-coverage: true
+          async-validation: true
+
+      # Use the output from the `hello` step
+      - name: Get the output package version id
+        run: echo "The package version id was ${{ steps.create-package-version.outputs.package-version-id }}"
