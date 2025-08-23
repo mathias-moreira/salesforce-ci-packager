@@ -39,10 +39,9 @@ inputs:
 outputs:
   package-version-id: # id of output
     description: The package version id
+  message:
+    description: The message from the command execution
 
 runs:
   using: node20
   main: dist/index.js
-
-
-sf package version create --package "Cuneiform for CRM: Field and Data Management" --installation-key-bypass --target-dev-hub devHub00 --code-coverage
