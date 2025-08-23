@@ -31342,8 +31342,6 @@ const updatePackageAliases = (packageResult) => {
   }
 
   file.packageAliases[packageResult.Package2Name + '@' + packageResult.VersionNumber] = packageResult.SubscriberPackageVersionId;
-
-  console.log('file', file);
   writeFileSync(filename, JSON.stringify(file, null, 2));
 };
 
@@ -31374,16 +31372,18 @@ try {
     coreExports.setFailed(result.error.message);
   } else {
     const packageResult = await pollPackageStatus(result.data.result.Id);
-    console.log('packageResult', packageResult);
-  
-    coreExports.setOutput('package-version-id', packageResult.version);
+
+    coreExports.setOutput('message', 'Package version created successfully');
+    coreExports.setOutput('package-version-id', packageResult.Id);
+    coreExports.setOutput('package-version-number', packageResult.VersionNumber);
+    coreExports.setOutput('package-report', JSON.stringify(packageResult, null, 2));
 
     updatePackageAliases(packageResult);
   }
 
  
 } catch (error) {
-  console.log('THIS error', error);
+  coreExports.setOutput('message', error.message);
   coreExports.setFailed(error.message);
 }
 //# sourceMappingURL=index.js.map

@@ -46,7 +46,8 @@ try {
     const packageResult = await pollPackageStatus(result.data.result.Id);
 
     core.setOutput('message', 'Package version created successfully');
-    core.setOutput('package-version-id', packageResult.version);
+    core.setOutput('package-version-id', packageResult.Id);
+    core.setOutput('package-version-number', packageResult.VersionNumber);
     core.setOutput('package-report', JSON.stringify(packageResult, null, 2));
 
     updatePackageAliases(packageResult);

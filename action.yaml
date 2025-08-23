@@ -42,6 +42,8 @@ inputs:
 outputs:
   package-version-id: # id of output
     description: The package version id
+  package-version-number:
+    description: The package version number
   package-report:
     description: The package report
     # An JSON representation of the package report
