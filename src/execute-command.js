@@ -5,7 +5,7 @@ const execPromise = util.promisify(exec);
 async function executeCommand(command) {
     try {
         const { stdout, stderr } = await execPromise(command);
-        return { success: true, data: JSON.parse(stdout), error: JSON.parse(stderr) };
+        return { success: true, data: JSON.parse(stdout) };
     } catch (error) {
         return { success: false, error };
     }

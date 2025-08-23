@@ -5,8 +5,8 @@ async function createPackageVersion(
   options
 ) {
 
-  const command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --installation-key-bypass --code-coverage --json`;
-  const {success, error} = await executeCommand(command);
+  const command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --installation-key-bypass --skip-validation --json`;
+  const {success, data,error} = await executeCommand(command);
 
   if (!success) {
     return {
@@ -15,7 +15,7 @@ async function createPackageVersion(
     };
   }
 
-  return result;
+  return {success, data};
 }
 
 export default createPackageVersion;

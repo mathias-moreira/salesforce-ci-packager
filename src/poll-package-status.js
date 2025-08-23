@@ -44,16 +44,13 @@ async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLIN
         throw new Error(`Failed to check package status: ${result.error}`);
     }
 
-    const status = JSON.parse(result.data);
-
-    const data = status.result[0];
+    const data = result.data.result[0];
 
     if (data.Status === 'Success') {
         return {
             success: true,
-            version: data.SubscriberPackageVersionId,
-            versionNumber: data.VersionNumber,
-            status: data.Status
+            ...result.data.result[0],
+            InstallationLink: `https://login.salesforce.com/packaging/installPackage.apexp?p0=${data.SubscriberPackageVersionId}`
         };
     } else if (data.Status === 'Error') {
         throw new Error(`Package creation failed: ${data.Error}`);
