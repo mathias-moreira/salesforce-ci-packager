@@ -1,6 +1,6 @@
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
-import require$$1 from 'fs';
+import require$$1, { readFileSync, writeFileSync } from 'fs';
 import require$$1$5, { join } from 'path';
 import require$$2$1 from 'http';
 import require$$3$1 from 'https';
@@ -31333,6 +31333,20 @@ async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLIN
     return pollPackageStatus(jobId, retryCount + 1, pollingInterval, maxRetries);
 }
 
+const updatePackageAliases = (packageResult) => {
+  const filename = "sfdx-project.json";
+  let file = JSON.parse(readFileSync(filename, 'utf8'));
+
+  if (!file.packageAliases) {
+    file.packageAliases = {};
+  }
+
+  file.packageAliases[packageResult.Package2Name + '@' + packageResult.VersionNumber] = packageResult.SubscriberPackageVersionId;
+
+  console.log('file', file);
+  writeFileSync(filename, JSON.stringify(file, null, 2));
+};
+
 try {
 
   const packagingDirectory = coreExports.getInput("packaging-directory");
@@ -31358,11 +31372,16 @@ try {
   if (!result.success) {
     coreExports.setOutput('message', result.error.message);
     coreExports.setFailed(result.error.message);
+  } else {
+    const packageResult = await pollPackageStatus(result.data.result.Id);
+    console.log('packageResult', packageResult);
+  
+    coreExports.setOutput('package-version-id', packageResult.version);
+
+    updatePackageAliases(packageResult);
   }
 
-  const packageResult = await pollPackageStatus(result.data.result.Id);
-  coreExports.info('packageResult', packageResult);
-  coreExports.setOutput('package-version-id', packageResult.version);  
+ 
 } catch (error) {
   console.log('THIS error', error);
   coreExports.setFailed(error.message);
