@@ -3,6 +3,19 @@ import * as github from "@actions/github";
 import createPackageVersion from "./create-package-version.js";
 import pollPackageStatus from "./poll-package-status.js";
 import { join } from 'path';
+import { readFileSync, writeFileSync } from "fs";
+
+const updatePackageAliases = (packageResult) => {
+  const filename = "sfdx-project.json"
+  let file = JSON.parse(readFileSync(filename, 'utf8'));
+
+  if (!file.packageAliases) {
+    file.packageAliases = {};
+  }
+
+  file.packageAliases[packageResult.Package2Name + '@' + packageResult.VersionNumber] = packageResult.SubscriberPackageVersionId;
+  writeFileSync(filename, JSON.stringify(file, null, 2));
+}
 
 try {
 
@@ -29,12 +42,18 @@ try {
   if (!result.success) {
     core.setOutput('message', result.error.message);
     core.setFailed(result.error.message);
+  } else {
+    const packageResult = await pollPackageStatus(result.data.result.Id);
+
+    core.setOutput('message', 'Package version created successfully');
+    core.setOutput('package-version-id', packageResult.version);
+    core.setOutput('package-report', JSON.stringify(packageResult, null, 2));
+
+    updatePackageAliases(packageResult);
   }
 
-  const packageResult = await pollPackageStatus(result.data.result.Id);
-  core.info('packageResult', packageResult);
-  core.setOutput('package-version-id', packageResult.version);  
+ 
 } catch (error) {
-  console.log('THIS error', error);
+  core.setOutput('message', error.message);
   core.setFailed(error.message);
 }
