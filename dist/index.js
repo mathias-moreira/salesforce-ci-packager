@@ -1,7 +1,7 @@
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
 import require$$1 from 'fs';
-import require$$1$5 from 'path';
+import require$$1$5, { join } from 'path';
 import require$$2$1 from 'http';
 import require$$3$1 from 'https';
 import require$$0$4 from 'net';
@@ -31239,16 +31239,16 @@ function requireGithub () {
 	return github;
 }
 
-var githubExports = requireGithub();
+requireGithub();
 
 const execPromise = require$$0$2.promisify(exec$1);
 
 async function executeCommand(command) {
     try {
         const { stdout, stderr } = await execPromise(command);
-        return { success: true, data: stdout, error: stderr };
+        return { success: true, data: JSON.parse(stdout) };
     } catch (error) {
-        return { success: false, error: error.message };
+        return { success: false, error };
     }
 }
 
@@ -31256,19 +31256,94 @@ async function createPackageVersion(
   packageId,
   options
 ) {
-  const command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --installation-key-bypass ${options.installationKeyBypass} --skip-validation ${options.skipValidation} --code-coverage ${options.codeCoverage} --async-validation ${options.asyncValidation} --json`;
-  const result = await executeCommand(command);
-  return result;
+
+  const command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --installation-key-bypass --skip-validation --json`;
+  const {success, data,error} = await executeCommand(command);
+
+  if (!success) {
+    return {
+      success: false,
+      error: JSON.parse(error.stdout)
+    };
+  }
+
+  return {success, data};
+}
+
+/**
+ * Package Status Pooler
+ *
+ * A utility script that polls the status of a Salesforce package version creation job.
+ * This script continuously checks the status of a package creation job until it 
+ * completes or fails, providing real-time status updates.
+ *
+ * Usage:
+ * ```bash
+ * node package-status-pooler.js -p <packageId>
+ * node package-status-pooler.js --package <packageId>
+ * ```
+ *
+ * Configuration:
+ * - POLLING_INTERVAL: Time between status checks (default: 60000ms / 1 minute)
+ * - MAX_RETRIES: Maximum number of polling attempts (default: 60 attempts / 1 hour)
+ * 
+ * @example
+ * node package-status-pooler.js -p 08cRQ0000007nTpYAI
+ *
+ * @returns { Object } On success, returns:
+ * {
+ *   success: true,
+ *   version: "04tXXXXXXXXXXXXX", // Subscriber Package Version Id
+ *   versionNumber: "1.0.0.1",    // Package version number
+ *   status: "Success"            // Final status
+ * }
+ */
+
+
+const POLLING_INTERVAL = 60000; // 1 minute
+const MAX_RETRIES = 60; // 1 hour max wait time
+
+async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLING_INTERVAL, maxRetries = MAX_RETRIES) {
+    if (retryCount >= maxRetries) {
+        throw new Error('Package creation timed out after 1 hour');
+    }
+
+    const command = `sf package version create report -i ${jobId} --json`;
+    const result = await executeCommand(command);
+
+    if (!result.success) {
+        throw new Error(`Failed to check package status: ${result.error}`);
+    }
+
+    const data = result.data.result[0];
+
+    if (data.Status === 'Success') {
+        return {
+            success: true,
+            ...result.data.result[0],
+            InstallationLink: `https://login.salesforce.com/packaging/installPackage.apexp?p0=${data.SubscriberPackageVersionId}`
+        };
+    } else if (data.Status === 'Error') {
+        throw new Error(`Package creation failed: ${data.Error}`);
+    }
+
+    console.log(`[${new Date().toLocaleTimeString()}] - Still in progress... Status: ${data.Status}`);
+    // eslint-disable-next-line @lwc/lwc/no-async-operation
+    await new Promise(resolve => setTimeout(resolve, pollingInterval));
+    return pollPackageStatus(jobId, retryCount + 1, pollingInterval, maxRetries);
 }
 
 try {
 
+  const packagingDirectory = coreExports.getInput("packaging-directory");
   const packageId = coreExports.getInput("package");
   const targetDevHub = coreExports.getInput("target-dev-hub");
   const installationKeyBypass = coreExports.getInput("installation-key-bypass");
   const skipValidation = coreExports.getInput("skip-validation");
   const codeCoverage = coreExports.getInput("code-coverage");
   const asyncValidation = coreExports.getInput("async-validation");
+
+  process.chdir(join(process.cwd(), packagingDirectory));
 
   coreExports.info(`Creating package version for package ${packageId} on dev hub ${targetDevHub} with installation key bypass: ${installationKeyBypass}, skip validation: ${skipValidation}, code coverage: ${codeCoverage}, async validation: ${asyncValidation}`);
 
@@ -31279,14 +31354,17 @@ try {
     codeCoverage,
     asyncValidation
   });
-  coreExports.info(`Result: ${JSON.stringify(result)}`);
 
-  coreExports.setOutput('package-version-id', "667F00000000000");
+  if (!result.success) {
+    coreExports.setOutput('message', result.error.message);
+    coreExports.setFailed(result.error.message);
+  }
 
-  // Get the JSON webhook payload for the event that triggered the workflow
-  const payload = JSON.stringify(githubExports.context.payload, undefined, 2);
-  coreExports.info(`The event payload: ${payload}`);
+  const packageResult = await pollPackageStatus(result.data.result.Id);
+  coreExports.info('packageResult', packageResult);
+  coreExports.setOutput('package-version-id', packageResult.version);  
 } catch (error) {
+  console.log('THIS error', error);
   coreExports.setFailed(error.message);
 }
 //# sourceMappingURL=index.js.map
