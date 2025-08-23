@@ -4,8 +4,17 @@ async function createPackageVersion(
   packageId,
   options
 ) {
-  const command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --installation-key-bypass ${options.installationKeyBypass} --skip-validation ${options.skipValidation} --code-coverage ${options.codeCoverage} --async-validation ${options.asyncValidation} --json`;
-  const result = await executeCommand(command);
+
+  const command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --installation-key-bypass --code-coverage --json`;
+  const {success, error} = await executeCommand(command);
+
+  if (!success) {
+    return {
+      success: false,
+      error: JSON.parse(error.stdout)
+    };
+  }
+
   return result;
 }
 
