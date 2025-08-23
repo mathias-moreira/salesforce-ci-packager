@@ -2,6 +2,9 @@ name: Salesforce 2GP Package Version Create Action
 description: Create a new package version for a Salesforce package
 
 inputs:
+  packaging-directory:
+    description: The directory containing the Salesforce project.
+    required: true
   package:
     description: ID (starts with 0Ho) or alias of the package to create a version of.
     required: true

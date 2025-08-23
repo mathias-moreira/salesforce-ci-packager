@@ -2,15 +2,19 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import createPackageVersion from "./create-package-version.js";
 import pollPackageStatus from "./poll-package-status.js";
+import { join } from 'path';
 
 try {
 
+  const packagingDirectory = core.getInput("packaging-directory");
   const packageId = core.getInput("package");
   const targetDevHub = core.getInput("target-dev-hub");
   const installationKeyBypass = core.getInput("installation-key-bypass");
   const skipValidation = core.getInput("skip-validation");
   const codeCoverage = core.getInput("code-coverage");
   const asyncValidation = core.getInput("async-validation");
+
+  process.chdir(join(process.cwd(), packagingDirectory))
 
   core.info(`Creating package version for package ${packageId} on dev hub ${targetDevHub} with installation key bypass: ${installationKeyBypass}, skip validation: ${skipValidation}, code coverage: ${codeCoverage}, async validation: ${asyncValidation}`);
 
@@ -21,13 +25,16 @@ try {
     codeCoverage,
     asyncValidation
   });
-  core.info(`Result: ${JSON.stringify(result)}`);
 
-  core.setOutput('package-version-id', "667F00000000000");
+  if (!result.success) {
+    core.setOutput('message', result.error.message);
+    core.setFailed(result.error.message);
+  }
 
-  // Get the JSON webhook payload for the event that triggered the workflow
-  const payload = JSON.stringify(github.context.payload, undefined, 2);
-  core.info(`The event payload: ${payload}`);
+  const packageResult = await pollPackageStatus(result.data.result.Id);
+  core.info('packageResult', packageResult);
+  core.setOutput('package-version-id', packageResult.version);  
 } catch (error) {
+  console.log('THIS error', error);
   core.setFailed(error.message);
 }
