@@ -44,8 +44,17 @@ try {
     core.setOutput('message', result.error.message);
     core.setFailed(result.error.message);
   } else {
+    const timeout = core.getInput('timeout');
+    const pollingInterval = core.getInput('polling-interval');
+  
+    // Convert timeout from minutes to number of retries
+    const maxRetries = timeout ? parseInt(timeout) : 60; // Default 60 minutes
+  
+    // Convert polling interval from seconds to milliseconds
+    const pollingIntervalMs = pollingInterval ? parseInt(pollingInterval) * 1000 : 60000; // Default 60 seconds
+
     core.info(`Polling package status for package version ${result.data.result.Id}`);
-    const packageResult = await pollPackageStatus(result.data.result.Id);
+    const packageResult = await pollPackageStatus(result.data.result.Id, 0, pollingIntervalMs, maxRetries);
 
     core.setOutput('message', 'Package version created successfully');
     core.setOutput('package-version-id', packageResult.Id);

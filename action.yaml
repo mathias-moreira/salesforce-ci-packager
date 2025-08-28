@@ -41,6 +41,16 @@ inputs:
       Specifying async validation returns the package version earlier in the process, allowing you to install and test the new version right away.
       If your development team is using continuous integration (CI) scripts, async validation can reduce your overall CI run time.
     required: false
+  timeout:
+    description: |
+      Maximum time in minutes to wait for package creation to complete.
+      Default is 60 minutes (1 hour).
+    required: false
+  polling-interval:
+    description: |
+      Time in seconds between status check attempts.
+      Default is 60 seconds (1 minute).
+    required: false
 
 outputs:
   package-version-id: # id of output
