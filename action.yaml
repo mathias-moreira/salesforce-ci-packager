@@ -19,9 +19,14 @@ inputs:
       Bypass the installation key requirement. (either --installation-key or --installation-key-bypass is required)
       If you bypass this requirement, anyone can install your package.
     required: false
+  installation-key:
+    description: |
+      Installation key for the package version. The default is null.
+      Omit this flag if you specify --installation-key-bypass.
+    required: false
   skip-validation:
     description: |
-      Skip validation during package version creation; you can’t promote unvalidated package versions.
+      Skip validation during package version creation; you can't promote unvalidated package versions.
       Skips validation of dependencies, package ancestors, and metadata during package version creation.
       Skipping validation reduces the time it takes to create a new package version, but you can promote only validated package versions.
       Skipping validation can suppress important errors that can surface at a later stage.
@@ -32,7 +37,7 @@ inputs:
     description: |
       Calculate and store the code coverage percentage by running the packaged Apex tests included in this package version.
       Before you can promote and release a managed or unlocked package version, the Apex code must meet a
-      minimum 75% code coverage requirement. We don’t calculate code coverage for org-dependent unlocked packages or
+      minimum 75% code coverage requirement. We don't calculate code coverage for org-dependent unlocked packages or
       for package versions that specify --skip-validation.
     required: false
   async-validation: 
@@ -40,6 +45,23 @@ inputs:
       Return a new package version before completing package validations.
       Specifying async validation returns the package version earlier in the process, allowing you to install and test the new version right away.
       If your development team is using continuous integration (CI) scripts, async validation can reduce your overall CI run time.
+    required: false
+  path:
+    description: |
+      Path to directory that contains the contents of the package.
+    required: false
+  version-name:
+    description: |
+      Name of the package version to be created.
+    required: false
+  version-description:
+    description: |
+      Description of the package version to be created.
+    required: false
+  version-number:
+    description: |
+      Version number in the format major.minor.patch.build.
+      This value must be higher than the current version number.
     required: false
   timeout:
     description: |

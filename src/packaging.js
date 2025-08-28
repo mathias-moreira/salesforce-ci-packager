@@ -59,6 +59,15 @@ const updatePackageAliases = (packageResult) => {
  * @param {string} packageId - The ID or alias of the package to create a version for
  * @param {Object} options - Options for package version creation
  * @param {string} options.targetDevHub - Username or alias of the Dev Hub org
+ * @param {string} [options.installationKeyBypass] - Bypass the installation key requirement
+ * @param {string} [options.installationKey] - Installation key for the package version
+ * @param {string} [options.skipValidation] - Skip validation during package version creation
+ * @param {string} [options.codeCoverage] - Calculate code coverage during package version creation
+ * @param {string} [options.asyncValidation] - Return a new package version before completing package validations
+ * @param {string} [options.path] - Path to directory that contains the contents of the package
+ * @param {string} [options.versionName] - Name of the package version to be created
+ * @param {string} [options.versionDescription] - Description of the package version to be created
+ * @param {string} [options.versionNumber] - Version number in the format major.minor.patch.build
  * @returns {Promise<Object>} The result of the package version creation
  * @property {boolean} success - Indicates if the package version creation was successful
  * @property {Object|null} data - Package version creation data if successful
@@ -74,17 +83,54 @@ const updatePackageAliases = (packageResult) => {
  * }
  */
 async function createPackageVersion(packageId, options) {
-  const command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --installation-key-bypass --skip-validation --json`;
-  const { success, data, error } = await executeCommand(command);
-
-  if (!success) {
-    return {
-      success: false,
-      error: JSON.parse(error.stdout),
-    };
+  let command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --json`;
+  
+  // Add installation key bypass option if provided
+  if (options.installationKeyBypass === 'true') {
+    command += ` --installation-key-bypass`;
   }
-
-  return { success, data };
+  
+  // Add installation key if provided
+  if (options.installationKey) {
+    command += ` --installation-key ${options.installationKey}`;
+  }
+  
+  // Add skip validation option if provided
+  if (options.skipValidation === 'true') {
+    command += ` --skip-validation`;
+  }
+  
+  // Add code coverage option if provided
+  if (options.codeCoverage === 'true') {
+    command += ` --code-coverage`;
+  }
+  
+  // Add async validation option if provided
+  if (options.asyncValidation === 'true') {
+    command += ` --async-validation`;
+  }
+  
+  // Add path if provided
+  if (options.path) {
+    command += ` --path ${options.path}`;
+  }
+  
+  // Add version name if provided
+  if (options.versionName) {
+    command += ` --version-name ${options.versionName}`;
+  }
+  
+  // Add version description if provided
+  if (options.versionDescription) {
+    command += ` --version-description ${options.versionDescription}`;
+  }
+  
+  // Add version number if provided
+  if (options.versionNumber) {
+    command += ` --version-number ${options.versionNumber}`;
+  }
+  
+  return await executeCommand(command);
 }
 
 /**
@@ -127,16 +173,11 @@ async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLIN
 
   const result = await executeCommand(`sf package version create report -i ${jobId} --json`);
 
-  if (!result.success) {
-    throw new Error(`Failed to check package status: ${result.error}`);
-  }
-
-  const data = result.data.result[0];
+  const data = result.result[0];
 
   if (data.Status === 'Success') {
     return {
-      success: true,
-      ...result.data.result[0],
+      ...result.result[0],
       InstallationLink: `https://login.salesforce.com/packaging/installPackage.apexp?p0=${data.SubscriberPackageVersionId}`,
     };
   } else if (data.Status === 'Error') {

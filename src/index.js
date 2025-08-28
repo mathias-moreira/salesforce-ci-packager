@@ -24,20 +24,30 @@ try {
 
   const packageId = core.getInput('package');
   const installationKeyBypass = core.getInput('installation-key-bypass');
+  const installationKey = core.getInput('installation-key');
   const skipValidation = core.getInput('skip-validation');
   const codeCoverage = core.getInput('code-coverage');
   const asyncValidation = core.getInput('async-validation');
+  const path = core.getInput('path');
+  const versionName = core.getInput('version-name');
+  const versionDescription = core.getInput('version-description');
+  const versionNumber = core.getInput('version-number');
 
   core.info(
-    `Creating package version for package ${packageId} on dev hub ${targetDevHub} with installation key bypass: ${installationKeyBypass}, skip validation: ${skipValidation}, code coverage: ${codeCoverage}, async validation: ${asyncValidation}`
+    `Creating package version for package ${packageId} on dev hub ${targetDevHub}`
   );
 
   const result = await createPackageVersion(packageId, {
     targetDevHub,
     installationKeyBypass,
+    installationKey,
     skipValidation,
     codeCoverage,
     asyncValidation,
+    path,
+    versionName,
+    versionDescription,
+    versionNumber,
   });
 
   if (!result.success) {
