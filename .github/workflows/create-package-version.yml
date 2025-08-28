@@ -3,8 +3,9 @@ on:
     branches:
       - master
 env:
-  DEV_HUB_ALIAS: MathiasDevHub
-  AUTH_URL: ${{ secrets.GITHUB_TOKEN }}
+  PACKAGING_DIRECTORY: ./packaging-automation-tests
+  PACKAGE_ID: MyUnlockedPackage
+  TARGET_DEV_HUB: MathiasDevHub
 
 jobs:
   create-package-version:
@@ -12,60 +13,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # To use this repository's private action,
-      # you must check out the reposito
-      - name: Checkout
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+      
+      - name: Checkout packaging-automation-tests repository
         uses: actions/checkout@v4
         with:
           repository: mathias-moreira/packaging-automation-tests
           token: ${{ secrets.GITHUB_TOKEN }}
+          path: packaging-automation-tests
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: "Cache Global npm (Salesforce CLI)"
-        id: cache-npm-global
-        uses: actions/cache@v4
-        with:
-          path: |
-            **/node_modules
-            ~/.npm
-            /usr/local/lib/node_modules
-          key: ${{ runner.os }}-npm-global-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-global-
-
-      - name: Populate auth file with AUTH_URL secret
-        shell: bash
-        run: |
-          echo ${{ env.AUTH_URL}} > ./DEVHUB_SFDX_URL.txt
-          secretFileSize=$(wc -c "./DEVHUB_SFDX_URL.txt" | awk '{print $1}')
-          if [ $secretFileSize == 1 ]; then
-              echo "Missing AUTH_URL secret. Is this workflow running on a fork?";
-              exit 1;
-          fi
+          cache-dependency-path: '**/package-lock.json'
 
       - name: Install Salesforce CLI
-        if: steps.cache-npm-global.outputs.cache-hit != 'true'
         run: npm install @salesforce/cli --global
 
-      - name: Authenticate Dev Hub
-        run: npx sf org login sfdx-url -f ./DEVHUB_SFDX_URL.txt -a ${{ env.DEV_HUB_ALIAS }} -d
-
       - name: Create package version
-        uses: ./ # Uses an action in the root directory
+        uses: ./
         id: create-package-version
         with:
-          package: 0Ho1A0000000000
-          target-dev-hub: devHub00
+          auth-url: ${{ secrets.AUTH_URL }}
+          packaging-directory: ${{ env.PACKAGING_DIRECTORY }}
+          package: ${{ env.PACKAGE_ID }}
+          target-dev-hub: ${{ env.TARGET_DEV_HUB }}
           installation-key-bypass: true
           skip-validation: true
-          code-coverage: true
-          async-validation: true
-
-      # Use the output from the `hello` step
-      - name: Get the output package version id
-        run: echo "The package version id was ${{ steps.create-package-version.outputs.package-version-id }}"
+          code-coverage: false
+          async-validation: false
+          timeout: 10
+          polling-interval: 20
