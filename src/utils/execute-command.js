@@ -11,24 +11,25 @@ import { exec } from 'child_process';
  * @async
  * @function executeCommand
  * @param {string} command - The Salesforce CLI command to execute (must include --json flag)
- * @returns {Promise<Object>} A promise that resolves with the parsed command result
- * @property {boolean} success - Indicates if the command executed successfully
- * @property {Object|null} error - Error information if command failed, null otherwise
- * @property {Object|null} data - Parsed JSON output from the SF command if successful, null otherwise
- * @throws {Object} Rejection object with success, error and data properties when command fails or JSON parsing fails
+ * @returns {Promise<Object>} A promise that resolves with the parsed command result from Salesforce CLI
+ * @throws {Object} Rejects with the parsed error output when command fails with non-zero status
+ * @throws {Error} Rejects with parsing error if JSON parsing fails
+ * @throws {Error} Rejects with execution error if command execution fails
  * 
  * @example
  * // Execute a Salesforce CLI command
- * const result = await executeCommand('sf package version create --json');
- * if (result.success) {
- *   console.log(result.data);
- * } else {
- *   console.error(result.error);
+ * try {
+ *   const result = await executeCommand('sf package version create --json');
+ *   console.log(result);
+ * } catch (error) {
+ *   console.error('Command failed:', error);
  * }
  * 
  * @remarks
  * This utility is specifically designed to work with Salesforce CLI commands that return JSON output.
  * Always include the --json flag in your commands to ensure proper parsing.
+ * The function resolves with the complete parsed JSON output from the CLI command.
+ * If the command returns a non-zero status, the promise will reject with the parsed error output.
  */
 function executeCommand(command) {
     return new Promise((resolve, reject) => {
@@ -38,17 +39,17 @@ function executeCommand(command) {
                     const parsedOutput = JSON.parse(stdout);
     
                     if (parsedOutput.status !== 0) {
-                        reject({ success: false, error: parsedOutput, data: null });
+                        reject(parsedOutput);
                     }
     
-                    resolve({ success: true, error: null, data: parsedOutput });
+                    resolve(parsedOutput);
                 } catch (error) {
-                    reject({ success: false, error, data: null });
+                    reject(error);
                 }
             });
             
         } catch (error) {
-            reject({ success: false, error, data: null });      
+            reject(error);      
         }
     });
 }
