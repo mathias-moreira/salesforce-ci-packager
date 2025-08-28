@@ -4,6 +4,7 @@ import createPackageVersion from "./create-package-version.js";
 import pollPackageStatus from "./poll-package-status.js";
 import { join } from 'path';
 import { createAuthFile, authorizeOrg, deleteAuthFile } from "./auth.js";
+import { updatePackageAliases, createPackageVersion, pollPackageStatus } from "./packaging.js";
   const packagingDirectory = core.getInput("packaging-directory");
   const authUrl = core.getInput("auth-url");
 
