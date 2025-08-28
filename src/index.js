@@ -70,7 +70,7 @@ try {
   updatePackageAliases(packageResult);
   
 } catch (error) {
-  console.log(error);
+  core.error(JSON.stringify(error, null, 2));
   core.setOutput('message', error.message);
   core.setFailed(error.message);
 }
