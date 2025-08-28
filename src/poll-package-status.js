@@ -27,7 +27,7 @@
  * }
  */
 
-import executeCommand from './execute-command.js';
+import executeCommand from './utils/execute-command.js';
 
 const POLLING_INTERVAL = 60000; // 1 minute
 const MAX_RETRIES = 60; // 1 hour max wait time

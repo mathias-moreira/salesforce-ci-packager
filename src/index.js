@@ -4,6 +4,7 @@ import createPackageVersion from "./create-package-version.js";
 import pollPackageStatus from "./poll-package-status.js";
 import { join } from 'path';
 import { readFileSync, writeFileSync } from "fs";
+import executeCommand from "./utils/execute-command.js";
 
 const updatePackageAliases = (packageResult) => {
   const filename = "sfdx-project.json"

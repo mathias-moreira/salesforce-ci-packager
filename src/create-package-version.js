@@ -1,4 +1,4 @@
-import executeCommand from "./execute-command.js";
+import executeCommand from "./utils/execute-command.js";
 
 async function createPackageVersion(
   packageId,
