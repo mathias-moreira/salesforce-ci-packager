@@ -3,26 +3,20 @@ import * as github from "@actions/github";
 import createPackageVersion from "./create-package-version.js";
 import pollPackageStatus from "./poll-package-status.js";
 import { join } from 'path';
-import { readFileSync, writeFileSync } from "fs";
-import executeCommand from "./utils/execute-command.js";
-
-const updatePackageAliases = (packageResult) => {
-  const filename = "sfdx-project.json"
-  let file = JSON.parse(readFileSync(filename, 'utf8'));
-
-  if (!file.packageAliases) {
-    file.packageAliases = {};
-  }
-
-  file.packageAliases[packageResult.Package2Name + '@' + packageResult.VersionNumber] = packageResult.SubscriberPackageVersionId;
-  writeFileSync(filename, JSON.stringify(file, null, 2));
-}
-
-try {
-
+import { createAuthFile, authorizeOrg, deleteAuthFile } from "./auth.js";
   const packagingDirectory = core.getInput("packaging-directory");
-  const packageId = core.getInput("package");
+  const authUrl = core.getInput("auth-url");
+
+  core.info(`Creating auth file.`);
+  createAuthFile(authUrl);
+
   const targetDevHub = core.getInput("target-dev-hub");
+
+  core.info(`Authenticating org ${targetDevHub}`);
+  await authorizeOrg(targetDevHub);
+
+  core.info(`Deleting auth file.`);
+  deleteAuthFile();
   const installationKeyBypass = core.getInput("installation-key-bypass");
   const skipValidation = core.getInput("skip-validation");
   const codeCoverage = core.getInput("code-coverage");
