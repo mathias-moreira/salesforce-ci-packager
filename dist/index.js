@@ -27258,24 +27258,25 @@ var coreExports = requireCore();
  * @async
  * @function executeCommand
  * @param {string} command - The Salesforce CLI command to execute (must include --json flag)
- * @returns {Promise<Object>} A promise that resolves with the parsed command result
- * @property {boolean} success - Indicates if the command executed successfully
- * @property {Object|null} error - Error information if command failed, null otherwise
- * @property {Object|null} data - Parsed JSON output from the SF command if successful, null otherwise
- * @throws {Object} Rejection object with success, error and data properties when command fails or JSON parsing fails
+ * @returns {Promise<Object>} A promise that resolves with the parsed command result from Salesforce CLI
+ * @throws {Object} Rejects with the parsed error output when command fails with non-zero status
+ * @throws {Error} Rejects with parsing error if JSON parsing fails
+ * @throws {Error} Rejects with execution error if command execution fails
  * 
  * @example
  * // Execute a Salesforce CLI command
- * const result = await executeCommand('sf package version create --json');
- * if (result.success) {
- *   console.log(result.data);
- * } else {
- *   console.error(result.error);
+ * try {
+ *   const result = await executeCommand('sf package version create --json');
+ *   console.log(result);
+ * } catch (error) {
+ *   console.error('Command failed:', error);
  * }
  * 
  * @remarks
  * This utility is specifically designed to work with Salesforce CLI commands that return JSON output.
  * Always include the --json flag in your commands to ensure proper parsing.
+ * The function resolves with the complete parsed JSON output from the CLI command.
+ * If the command returns a non-zero status, the promise will reject with the parsed error output.
  */
 function executeCommand(command) {
     return new Promise((resolve, reject) => {
@@ -27285,17 +27286,17 @@ function executeCommand(command) {
                     const parsedOutput = JSON.parse(stdout);
     
                     if (parsedOutput.status !== 0) {
-                        reject({ success: false, error: parsedOutput, data: null });
+                        reject(parsedOutput);
                     }
     
-                    resolve({ success: true, error: null, data: parsedOutput });
+                    resolve(parsedOutput);
                 } catch (error) {
-                    reject({ success: false, error, data: null });
+                    reject(error);
                 }
             });
             
         } catch (error) {
-            reject({ success: false, error, data: null });      
+            reject(error);      
         }
     });
 }
@@ -27427,6 +27428,15 @@ const updatePackageAliases = (packageResult) => {
  * @param {string} packageId - The ID or alias of the package to create a version for
  * @param {Object} options - Options for package version creation
  * @param {string} options.targetDevHub - Username or alias of the Dev Hub org
+ * @param {string} [options.installationKeyBypass] - Bypass the installation key requirement
+ * @param {string} [options.installationKey] - Installation key for the package version
+ * @param {string} [options.skipValidation] - Skip validation during package version creation
+ * @param {string} [options.codeCoverage] - Calculate code coverage during package version creation
+ * @param {string} [options.asyncValidation] - Return a new package version before completing package validations
+ * @param {string} [options.path] - Path to directory that contains the contents of the package
+ * @param {string} [options.versionName] - Name of the package version to be created
+ * @param {string} [options.versionDescription] - Description of the package version to be created
+ * @param {string} [options.versionNumber] - Version number in the format major.minor.patch.build
  * @returns {Promise<Object>} The result of the package version creation
  * @property {boolean} success - Indicates if the package version creation was successful
  * @property {Object|null} data - Package version creation data if successful
@@ -27442,17 +27452,54 @@ const updatePackageAliases = (packageResult) => {
  * }
  */
 async function createPackageVersion(packageId, options) {
-  const command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --installation-key-bypass --skip-validation --json`;
-  const { success, data, error } = await executeCommand(command);
-
-  if (!success) {
-    return {
-      success: false,
-      error: JSON.parse(error.stdout),
-    };
+  let command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --json`;
+  
+  // Add installation key bypass option if provided
+  if (options.installationKeyBypass === 'true') {
+    command += ` --installation-key-bypass`;
   }
-
-  return { success, data };
+  
+  // Add installation key if provided
+  if (options.installationKey) {
+    command += ` --installation-key ${options.installationKey}`;
+  }
+  
+  // Add skip validation option if provided
+  if (options.skipValidation === 'true') {
+    command += ` --skip-validation`;
+  }
+  
+  // Add code coverage option if provided
+  if (options.codeCoverage === 'true') {
+    command += ` --code-coverage`;
+  }
+  
+  // Add async validation option if provided
+  if (options.asyncValidation === 'true') {
+    command += ` --async-validation`;
+  }
+  
+  // Add path if provided
+  if (options.path) {
+    command += ` --path ${options.path}`;
+  }
+  
+  // Add version name if provided
+  if (options.versionName) {
+    command += ` --version-name ${options.versionName}`;
+  }
+  
+  // Add version description if provided
+  if (options.versionDescription) {
+    command += ` --version-description ${options.versionDescription}`;
+  }
+  
+  // Add version number if provided
+  if (options.versionNumber) {
+    command += ` --version-number ${options.versionNumber}`;
+  }
+  
+  return await executeCommand(command);
 }
 
 /**
@@ -27495,16 +27542,11 @@ async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLIN
 
   const result = await executeCommand(`sf package version create report -i ${jobId} --json`);
 
-  if (!result.success) {
-    throw new Error(`Failed to check package status: ${result.error}`);
-  }
-
-  const data = result.data.result[0];
+  const data = result.result[0];
 
   if (data.Status === 'Success') {
     return {
-      success: true,
-      ...result.data.result[0],
+      ...result.result[0],
       InstallationLink: `https://login.salesforce.com/packaging/installPackage.apexp?p0=${data.SubscriberPackageVersionId}`,
     };
   } else if (data.Status === 'Error') {
@@ -27537,46 +27579,53 @@ try {
 
   const packageId = coreExports.getInput('package');
   const installationKeyBypass = coreExports.getInput('installation-key-bypass');
+  const installationKey = coreExports.getInput('installation-key');
   const skipValidation = coreExports.getInput('skip-validation');
   const codeCoverage = coreExports.getInput('code-coverage');
   const asyncValidation = coreExports.getInput('async-validation');
+  const path = coreExports.getInput('path');
+  const versionName = coreExports.getInput('version-name');
+  const versionDescription = coreExports.getInput('version-description');
+  const versionNumber = coreExports.getInput('version-number');
 
   coreExports.info(
-    `Creating package version for package ${packageId} on dev hub ${targetDevHub} with installation key bypass: ${installationKeyBypass}, skip validation: ${skipValidation}, code coverage: ${codeCoverage}, async validation: ${asyncValidation}`
+    `Creating package version for package ${packageId} on dev hub ${targetDevHub}`
   );
 
   const result = await createPackageVersion(packageId, {
     targetDevHub,
     installationKeyBypass,
+    installationKey,
     skipValidation,
     codeCoverage,
     asyncValidation,
+    path,
+    versionName,
+    versionDescription,
+    versionNumber,
   });
 
-  if (!result.success) {
-    coreExports.setOutput('message', result.error.message);
-    coreExports.setFailed(result.error.message);
-  } else {
-    const timeout = coreExports.getInput('timeout');
-    const pollingInterval = coreExports.getInput('polling-interval');
+  const timeout = coreExports.getInput('timeout');
+  const pollingInterval = coreExports.getInput('polling-interval');
+
+  // Convert timeout from minutes to number of retries
+  const maxRetries = timeout ? parseInt(timeout) : 60; // Default 60 minutes
+
+  // Convert polling interval from seconds to milliseconds
+  const pollingIntervalMs = pollingInterval ? parseInt(pollingInterval) * 1000 : 60000; // Default 60 seconds
+
+  coreExports.info(`Polling package status for package version ${result.result.Id}`);
+  const packageResult = await pollPackageStatus(result.result.Id, 0, pollingIntervalMs, maxRetries);
+
+  coreExports.setOutput('message', 'Package version created successfully');
+  coreExports.setOutput('package-version-id', packageResult.Id);
+  coreExports.setOutput('package-version-number', packageResult.VersionNumber);
+  coreExports.setOutput('package-report', JSON.stringify(packageResult, null, 2));
+
+  updatePackageAliases(packageResult);
   
-    // Convert timeout from minutes to number of retries
-    const maxRetries = timeout ? parseInt(timeout) : 60; // Default 60 minutes
-  
-    // Convert polling interval from seconds to milliseconds
-    const pollingIntervalMs = pollingInterval ? parseInt(pollingInterval) * 1000 : 60000; // Default 60 seconds
-
-    coreExports.info(`Polling package status for package version ${result.data.result.Id}`);
-    const packageResult = await pollPackageStatus(result.data.result.Id, 0, pollingIntervalMs, maxRetries);
-
-    coreExports.setOutput('message', 'Package version created successfully');
-    coreExports.setOutput('package-version-id', packageResult.Id);
-    coreExports.setOutput('package-version-number', packageResult.VersionNumber);
-    coreExports.setOutput('package-report', JSON.stringify(packageResult, null, 2));
-
-    updatePackageAliases(packageResult);
-  }
 } catch (error) {
+  coreExports.error(JSON.stringify(error, null, 2));
   coreExports.setOutput('message', error.message);
   coreExports.setFailed(error.message);
 }
