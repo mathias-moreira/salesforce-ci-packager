@@ -27,6 +27,7 @@ jobs:
     name: Workflow Syntax
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Actionlint
         id: actionlint
         uses: raven-actions/actionlint@v2
