@@ -1,21 +1,35 @@
-# Salesforce 2GP Package Version Create Action
+# 📦 Salesforce CI Packager (2GP)
 
-A GitHub Action for creating a new Second-Generation Package (2GP) version for a Salesforce package. This action automates the package version creation process in your CI/CD workflows.
+A powerful GitHub Action that simplifies and automates the creation of Second-Generation Packages (2GP) for Salesforce. Say goodbye to manual package creation and hello to streamlined CI/CD workflows!
 
-## Features
+![GitHub stars](https://img.shields.io/github/stars/mathias-moreira/salesforce-ci-packager?style=social)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-- Authenticate with a Salesforce Dev Hub org
-- Create a new package version with customizable options
-- Poll for package creation status
-- Update package aliases in the sfdx-project.json file
-- Configurable timeout and polling intervals
+## ✨ Why Use This Action?
 
-## Inputs
+Creating and managing Salesforce 2GP packages can be time-consuming and error-prone. This action transforms your packaging experience:
+
+- 🚀 **Accelerate Delivery** - Automate package creation in your CI/CD pipeline
+- 🔄 **Ensure Consistency** - Standardize package versioning across your organization
+- ⏱️ **Save Time** - Eliminate manual steps in your release process
+- 📊 **Gain Visibility** - Track package creation status with detailed reporting
+- 🔌 **Plug and Play** - Integrate seamlessly with your existing GitHub workflows
+- 🛡️ **Reduce Errors** - Eliminate common mistakes in the packaging process
+
+## 🛠️ Key Features
+
+- 🔐 Authenticate with a Salesforce Dev Hub org
+- 📦 Create a new package version with customizable options
+- 🔄 Poll for package creation status
+- ✏️ Update package aliases in the sfdx-project.json file
+- ⚙️ Configurable timeout and polling intervals
+
+## 📋 Inputs
 
 | Name | Description | Required | Default |
 |------|-------------|----------|---------|
 | `auth-url` | The URL of the Dev Hub org. This is used to create an auth file for the Dev Hub org. | Yes | |
-| `packaging-directory` | The directory containing the Salesforce project. Typically `./ ` when the action runs in the same repository that contains the Salesforce project. When testing locally or running in a separate repository, this should match the path where the Salesforce project is checked out. | Yes | |
+| `packaging-directory` | The directory containing the Salesforce project. | No | `./` |
 | `package` | ID (starts with 0Ho) or alias of the package to create a version of. | Yes | |
 | `target-dev-hub` | Username or alias of the Dev Hub org. | Yes | |
 | `installation-key-bypass` | Bypass the installation key requirement. If you bypass this requirement, anyone can install your package. | No | |
@@ -30,7 +44,7 @@ A GitHub Action for creating a new Second-Generation Package (2GP) version for a
 | `timeout` | Maximum time in minutes to wait for package creation to complete. | No | 60 |
 | `polling-interval` | Time in seconds between status check attempts. | No | 60 |
 
-## Outputs
+## 📤 Outputs
 
 | Name | Description |
 |------|-------------|
@@ -39,7 +53,9 @@ A GitHub Action for creating a new Second-Generation Package (2GP) version for a
 | `package-report` | JSON representation of the package report |
 | `message` | The message from the command execution |
 
-## Example Workflow
+## 🚀 Quick Start
+
+Add this workflow to your project in `.github/workflows/create-package.yml`:
 
 ```yaml
 name: Create Salesforce Package Version
@@ -51,7 +67,6 @@ on:
   workflow_dispatch:
 
 env:
-  PACKAGING_DIRECTORY: ./
   PACKAGE_ID: MyPackage
   TARGET_DEV_HUB: DevHub
 
@@ -64,37 +79,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Example: If your Salesforce project is in a separate repository
-      # - name: Checkout Salesforce project repository
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: your-username/your-salesforce-project
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     path: salesforce-project
-      # Then set PACKAGING_DIRECTORY: ./salesforce-project
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Salesforce CLI
-        run: npm install @salesforce/cli --global
-
       - name: Create package version
-        uses: mathias-moreira/2gp-packaging-action
+        uses: mathias-moreira/salesforce-ci-packager
         id: create-package-version
         with:
           auth-url: ${{ secrets.AUTH_URL }}
-          packaging-directory: ${{ env.PACKAGING_DIRECTORY }}
           package: ${{ env.PACKAGE_ID }}
           target-dev-hub: ${{ env.TARGET_DEV_HUB }}
           installation-key-bypass: true
-          skip-validation: false
           code-coverage: true
-          timeout: 60
-          polling-interval: 30
 
       - name: Show package details
         run: |
@@ -102,75 +101,7 @@ jobs:
           echo "Package Version Number: ${{ steps.create-package-version.outputs.package-version-number }}"
 ```
 
-## Local Development
-
-This action can be developed and tested locally using [act](https://github.com/nektos/act), a tool for running GitHub Actions locally.
-
-### Prerequisites
-
-1. Install Docker (required by act)
-2. Install act: `brew install act` (macOS) or follow the [installation instructions](https://github.com/nektos/act#installation)
-3. Clone this repository
-
-### Setup for Local Development
-
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Build the action:
-   ```bash
-   npm run build
-   ```
-
-3. Create a `.secrets` file in the root of the project with the following content:
-   ```
-   AUTH_URL=YOUR_AUTH_URL
-   ACTION_PAT=YOUR_GITHUB_PERSONAL_ACCESS_TOKEN
-   ```
-
-4. Run the action locally:
-   ```bash
-   npm start
-   ```
-
-This will use the workflow defined in `.github/workflows/local-development.yml` to test the action locally.
-
-### Testing with External Salesforce Projects
-
-When testing locally, you might need to use a Salesforce project from a different repository. The local-development.yml workflow demonstrates this scenario:
-
-```yaml
-- name: Checkout Salesforce project repository
-  uses: actions/checkout@v4
-  with:
-    repository: your-username/your-salesforce-project
-    token: ${{ secrets.ACTION_PAT }}
-    path: ${{ env.PACKAGING_DIRECTORY }}
-```
-
-In this case, the `packaging-directory` parameter should match the path where the external repository is checked out:
-
-```yaml
-- name: Create package version
-  uses: mathias-moreira/2gp-packaging-action
-  id: create-package-version
-  with:
-    auth-url: ${{ secrets.AUTH_URL }}
-    packaging-directory: ${{ env.PACKAGING_DIRECTORY }}  # Set to "./your-salesforce-project"
-    package: ${{ env.PACKAGE_ID }}
-    target-dev-hub: ${{ env.TARGET_DEV_HUB }}
-```
-
-## NPM Scripts
-
-| Script | Description |
-|--------|-------------|
-| `npm run build` | Builds the action using Rollup, creating a bundled JavaScript file in the `dist` directory |
-| `npm start` | Runs the action locally using act with the local development workflow |
-
-## Salesforce CLI Commands
+## 🔧 Under the Hood
 
 This action uses the following Salesforce CLI commands:
 
@@ -179,29 +110,22 @@ This action uses the following Salesforce CLI commands:
 
 For more information about these commands, see the [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_package_commands.htm).
 
-## Contributing
+## 👥 Contributing
 
-Contributions are welcome! Here's how you can contribute:
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on how to contribute to this project, including local development setup and testing.
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin feature/my-new-feature`
-5. Submit a pull request
-
-### Development Guidelines
-
-- Follow the existing code style
-- Add JSDoc comments for all functions
-- Test your changes locally using act
-- Update documentation as needed
-
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Additional Resources
+## 📚 Additional Resources
 
 - [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
 - [Second-Generation Packages](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp.htm)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
+
+---
+
+💡 **Tip:** Store your `auth-url` as a GitHub secret to keep your credentials secure!
+
+⭐ If you find this action helpful, consider giving it a star on GitHub!
