@@ -42,7 +42,5 @@ jobs:
           target-dev-hub: ${{ env.TARGET_DEV_HUB }}
           installation-key-bypass: true
           skip-validation: true
-          code-coverage: false
-          async-validation: false
           timeout: 10
           polling-interval: 20
