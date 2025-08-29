@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "rollup --config rollup.config.js",
-    "start": "act --container-architecture linux/amd64 --artifact-server-path -s",
-    "prepare": "husky install"
+    "start": "act --container-architecture linux/amd64 --artifact-server-path -s"
   },
   "repository": {
     "type": "git",
