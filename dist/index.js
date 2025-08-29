@@ -1,6 +1,6 @@
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
-import require$$1, { writeFileSync, unlinkSync, readFileSync } from 'fs';
+import require$$1, { writeFileSync, unlinkSync, readFileSync, existsSync } from 'fs';
 import require$$1$5, { join } from 'path';
 import require$$2 from 'http';
 import require$$3 from 'https';
@@ -1718,7 +1718,7 @@ function requireTimers () {
 	return timers;
 }
 
-var main = {exports: {}};
+var main$1 = {exports: {}};
 
 var sbmh;
 var hasRequiredSbmh;
@@ -3256,7 +3256,7 @@ function requireUrlencoded () {
 var hasRequiredMain;
 
 function requireMain () {
-	if (hasRequiredMain) return main.exports;
+	if (hasRequiredMain) return main$1.exports;
 	hasRequiredMain = 1;
 
 	const WritableStream = require$$0$7.Writable;
@@ -3337,12 +3337,12 @@ function requireMain () {
 	  this._parser.write(chunk, cb);
 	};
 
-	main.exports = Busboy;
-	main.exports.default = Busboy;
-	main.exports.Busboy = Busboy;
+	main$1.exports = Busboy;
+	main$1.exports.default = Busboy;
+	main$1.exports.Busboy = Busboy;
 
-	main.exports.Dicer = Dicer;
-	return main.exports;
+	main$1.exports.Dicer = Dicer;
+	return main$1.exports;
 }
 
 var constants$3;
@@ -27352,7 +27352,7 @@ const createAuthFile = (authUrl) => {
  * Typically, you should call createAuthFile() before calling this function.
  */
 const authorizeOrg = async (targetDevHub) => {
-  return await executeCommand(`sf org login sfdx-url -f ./${AUTH_FILE} -a ${targetDevHub} -d --json`);
+  return await executeCommand(`npx @salesforce/cli org login sfdx-url -f ./${AUTH_FILE} -a ${targetDevHub} -d --json`);
 };
 
 /**
@@ -27452,7 +27452,7 @@ const updatePackageAliases = (packageResult) => {
  * }
  */
 async function createPackageVersion(packageId, options) {
-  let command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --json`;
+  let command = `npx @salesforce/cli package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --json`;
   
   // Add installation key bypass option if provided
   if (options.installationKeyBypass === 'true') {
@@ -27540,7 +27540,7 @@ async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLIN
     throw new Error('Package creation timed out.');
   }
 
-  const result = await executeCommand(`sf package version create report -i ${jobId} --json`);
+  const result = await executeCommand(`npx @salesforce/cli package version create report -i ${jobId} --json`);
 
   const data = result.result[0];
 
@@ -27558,75 +27558,147 @@ async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLIN
   return pollPackageStatus(jobId, retryCount + 1, pollingInterval, maxRetries);
 }
 
-try {
-  const packagingDirectory = coreExports.getInput('packaging-directory');
+const SFDX_PROJECT_JSON = 'sfdx-project.json';
 
-  coreExports.info(`Changing to packaging directory ${packagingDirectory}`);
-  process.chdir(join(process.cwd(), packagingDirectory));
+/**
+ * Main function that orchestrates the package version creation process.
+ * 
+ * @function main
+ * @returns {Promise<void>}
+ */
+const main = async () => {
+  try {
+    const packagingDirectory = coreExports.getInput('packaging-directory');
 
-  const authUrl = coreExports.getInput('auth-url');
+    // Only change directory if packaging directory is specified
+    if (packagingDirectory) {
+      const packagingDirPath = join(process.cwd(), packagingDirectory);
 
-  coreExports.info(`Creating auth file.`);
-  createAuthFile(authUrl);
+      // Validate that the directory exists if specified
+      if (!existsSync(packagingDirPath)) {
+        coreExports.setFailed(`Packaging directory does not exist: ${packagingDirPath}`);
+        return;
+      }
 
-  const targetDevHub = coreExports.getInput('target-dev-hub');
+      coreExports.info(`Changing to packaging directory ${packagingDirectory}`);
+      process.chdir(packagingDirPath);
+    }
 
-  coreExports.info(`Authenticating org ${targetDevHub}`);
-  await authorizeOrg(targetDevHub);
+    // Validate sfdx-project.json exists in the current directory
+    if (!existsSync(SFDX_PROJECT_JSON)) {
+      coreExports.setFailed(`${SFDX_PROJECT_JSON} not found in the current directory`);
+      return;
+    }
 
-  coreExports.info(`Deleting auth file.`);
-  deleteAuthFile();
+    const authUrl = coreExports.getInput('auth-url');
+    console.log('authUrl', authUrl);
+    if (!authUrl) {
+      coreExports.setFailed('Auth URL is required');
+      return;
+    }
 
-  const packageId = coreExports.getInput('package');
-  const installationKeyBypass = coreExports.getInput('installation-key-bypass');
-  const installationKey = coreExports.getInput('installation-key');
-  const skipValidation = coreExports.getInput('skip-validation');
-  const codeCoverage = coreExports.getInput('code-coverage');
-  const asyncValidation = coreExports.getInput('async-validation');
-  const path = coreExports.getInput('path');
-  const versionName = coreExports.getInput('version-name');
-  const versionDescription = coreExports.getInput('version-description');
-  const versionNumber = coreExports.getInput('version-number');
+    coreExports.info(`Creating auth file.`);
+    createAuthFile(authUrl);
 
-  coreExports.info(
-    `Creating package version for package ${packageId} on dev hub ${targetDevHub}`
-  );
+    const targetDevHub = coreExports.getInput('target-dev-hub');
+    if (!targetDevHub) {
+      coreExports.setFailed('Target Dev Hub is required');
+      return;
+    }
 
-  const result = await createPackageVersion(packageId, {
-    targetDevHub,
-    installationKeyBypass,
-    installationKey,
-    skipValidation,
-    codeCoverage,
-    asyncValidation,
-    path,
-    versionName,
-    versionDescription,
-    versionNumber,
-  });
+    coreExports.info(`Authenticating org ${targetDevHub}`);
+    await authorizeOrg(targetDevHub);
 
-  const timeout = coreExports.getInput('timeout');
-  const pollingInterval = coreExports.getInput('polling-interval');
+    coreExports.info(`Deleting auth file.`);
+    deleteAuthFile();
 
-  // Convert timeout from minutes to number of retries
-  const maxRetries = timeout ? parseInt(timeout) : 60; // Default 60 minutes
+    const packageId = coreExports.getInput('package');
+    if (!packageId) {
+      coreExports.setFailed('Package ID or alias is required');
+      return;
+    }
 
-  // Convert polling interval from seconds to milliseconds
-  const pollingIntervalMs = pollingInterval ? parseInt(pollingInterval) * 1000 : 60000; // Default 60 seconds
+    const installationKeyBypass = coreExports.getInput('installation-key-bypass');
+    const installationKey = coreExports.getInput('installation-key');
 
-  coreExports.info(`Polling package status for package version ${result.result.Id}`);
-  const packageResult = await pollPackageStatus(result.result.Id, 0, pollingIntervalMs, maxRetries);
+    // Validate installation key or bypass is provided
+    if (!installationKeyBypass && !installationKey) {
+      coreExports.setFailed('Either installation-key or installation-key-bypass must be provided');
+      return;
+    }
 
-  coreExports.setOutput('message', 'Package version created successfully');
-  coreExports.setOutput('package-version-id', packageResult.Id);
-  coreExports.setOutput('package-version-number', packageResult.VersionNumber);
-  coreExports.setOutput('package-report', JSON.stringify(packageResult, null, 2));
+    // Validate that both installation key and bypass are not provided together
+    if (installationKeyBypass && installationKey) {
+      coreExports.setFailed('Cannot provide both installation-key and installation-key-bypass');
+      return;
+    }
 
-  updatePackageAliases(packageResult);
-  
-} catch (error) {
-  coreExports.error(JSON.stringify(error, null, 2));
-  coreExports.setOutput('message', error.message);
-  coreExports.setFailed(error.message);
-}
+    const skipValidation = coreExports.getInput('skip-validation');
+    const codeCoverage = coreExports.getInput('code-coverage');
+
+    // Validate that skip-validation and code-coverage are not both provided
+    if (skipValidation === 'true' && codeCoverage === 'true') {
+      coreExports.setFailed('Cannot specify both skip-validation and code-coverage');
+      return;
+    }
+
+    const asyncValidation = coreExports.getInput('async-validation');
+    const path = coreExports.getInput('path');
+    const versionName = coreExports.getInput('version-name');
+    const versionDescription = coreExports.getInput('version-description');
+    const versionNumber = coreExports.getInput('version-number');
+
+    coreExports.info(`Creating package version for package ${packageId} on dev hub ${targetDevHub}`);
+
+    const result = await createPackageVersion(packageId, {
+      targetDevHub,
+      installationKeyBypass,
+      installationKey,
+      skipValidation,
+      codeCoverage,
+      asyncValidation,
+      path,
+      versionName,
+      versionDescription,
+      versionNumber,
+    });
+
+    const timeout = coreExports.getInput('timeout');
+    const pollingInterval = coreExports.getInput('polling-interval');
+
+    // Convert timeout from minutes to number of retries
+    const maxRetries = timeout ? parseInt(timeout) : 60; // Default 60 minutes
+
+    // Validate timeout is a positive number
+    if (maxRetries <= 0) {
+      coreExports.setFailed('Timeout must be a positive number');
+      return;
+    }
+
+    // Convert polling interval from seconds to milliseconds
+    const pollingIntervalMs = pollingInterval ? parseInt(pollingInterval) * 1000 : 60000; // Default 60 seconds
+
+    // Validate polling interval is a positive number
+    if (pollingIntervalMs <= 0) {
+      coreExports.setFailed('Polling interval must be a positive number');
+      return;
+    }
+
+    coreExports.info(`Polling package status for package version ${result.result.Id}`);
+    const packageResult = await pollPackageStatus(result.result.Id, 0, pollingIntervalMs, maxRetries);
+
+    coreExports.setOutput('message', 'Package version created successfully');
+    coreExports.setOutput('package-version-id', packageResult.Id);
+    coreExports.setOutput('package-version-number', packageResult.VersionNumber);
+    coreExports.setOutput('package-report', JSON.stringify(packageResult, null, 2));
+
+    updatePackageAliases(packageResult);
+  } catch (error) {
+    coreExports.error(JSON.stringify(error, null, 2));
+    coreExports.setOutput('message', error.message);
+    coreExports.setFailed(error.message);
+  }
+};
+
+main();
 //# sourceMappingURL=index.js.map
