@@ -1,6 +1,13 @@
-name: Salesforce 2GP Package Version Create Action
-description: Create a new package version for a Salesforce package
-
+name: Salesforce CI Packager (2GP)
+description: A GitHub Action that simplifies and automates the creation of Salesforce Second-Generation Packages (2GP)
+branding:
+  icon: package
+  color: blue
+author: Mathias Moreira
+runs:
+  using: node20
+  main: dist/index.js
+ 
 inputs:
   auth-url:
     description: The URL of the Dev Hub org. This is used to create an auth file for the Dev Hub org.
@@ -106,7 +113,3 @@ outputs:
     # }
   message:
     description: The message from the command execution
-
-runs:
-  using: node20
-  main: dist/index.js
