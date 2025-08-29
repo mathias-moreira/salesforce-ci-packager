@@ -32,7 +32,7 @@ jobs:
         id: actionlint
         uses: raven-actions/actionlint@v2
         with:
-          files: "*.yml, *.yaml"
+          files: ".github/workflows/*.yml, .github/workflows/*.yaml"
       
       - name: Actionlint Summary
         if: ${{ steps.actionlint.outputs.exit-code != 0 }}  # example usage, do echo only when actionlint action failed
