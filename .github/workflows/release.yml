@@ -1,0 +1,57 @@
+name: Release (semantic-release on main)
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write   # necessary to create tags and releases
+  issues: read
+  pull-requests: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci || npm i
+
+      # Run semantic-release and expose outputs with the published version
+      - name: semantic-release
+        id: semrel
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTION_PAT }}
+        with:
+          extra_plugins: |
+            @semantic-release/commit-analyzer
+            @semantic-release/release-notes-generator
+            @semantic-release/github
+
+      # Move/create the major tag (v1, v2, ...) so users can use @v1
+      - name: Update major tag (vX) to latest release
+        if: steps.semrel.outputs.new_release_published == 'true'
+        env:
+          VERSION: ${{ steps.semrel.outputs.new_release_version }}                 # ex: 1.2.3 (without 'v')
+          MAJOR: ${{ steps.semrel.outputs.new_release_major_version }}            # ex: 1
+          GITHUB_TOKEN: ${{ secrets.ACTION_PAT }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Ensure current tags are fetched
+          git fetch --tags --force
+          # Tag semver with 'v' by convention in Actions
+          echo "Latest version: v$VERSION"
+          # Create/force major tag (v1, v2, ...)
+          git tag -fa "v$MAJOR" -m "chore(release): update v$MAJOR to v$VERSION"
+          git push origin -f "refs/tags/v$MAJOR"
