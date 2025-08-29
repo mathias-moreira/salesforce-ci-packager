@@ -1,7 +1,6 @@
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
+
 env:
   PACKAGING_DIRECTORY: ./packaging-automation-tests
   PACKAGE_ID: MyUnlockedPackage
