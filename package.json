@@ -1,19 +1,48 @@
 {
-  "name": "salesforce-2gp-package-version-create-action",
+  "name": "salesforce-ci-packager",
   "version": "1.0.0",
-  "description": "Create a new package version for a Salesforce package",
+  "description": "A GitHub Action that simplifies and automates the creation of Salesforce Second-Generation Packages (2GP)",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "build": "rollup --config rollup.config.js",
-    "start": "act --container-architecture linux/amd64 --artifact-server-path -s"
+    "start": "act --container-architecture linux/amd64 --artifact-server-path -s",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mathias-moreira/salesforce-ci-packager.git"
+  },
+  "keywords": [
+    "github",
+    "actions",
+    "salesforce",
+    "sfdx",
+    "packaging",
+    "2gp",
+    "ci",
+    "cd",
+    "automation",
+    "devops"
+  ],
+  "author": "Mathias Moreira",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mathias-moreira/salesforce-ci-packager/issues"
+  },
+  "homepage": "https://github.com/mathias-moreira/salesforce-ci-packager#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "husky": "^9.1.7",
+    "rollup": "^4.46.4",
+    "semantic-release": "^24.2.7"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
-    "@salesforce/cli": "^2.103.7"
-  },
-  "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "rollup": "^4.46.4"
