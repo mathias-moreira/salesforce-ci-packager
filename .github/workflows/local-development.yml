@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Checkout current repository
         uses: actions/checkout@v4
+        with:
+          ref: master
+
       
       - name: Checkout packaging-automation-tests repository
         uses: actions/checkout@v4
