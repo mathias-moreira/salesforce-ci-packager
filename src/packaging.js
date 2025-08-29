@@ -83,7 +83,7 @@ const updatePackageAliases = (packageResult) => {
  * }
  */
 async function createPackageVersion(packageId, options) {
-  let command = `sf package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --json`;
+  let command = `npx @salesforce/cli package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --json`;
   
   // Add installation key bypass option if provided
   if (options.installationKeyBypass === 'true') {
@@ -171,7 +171,7 @@ async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLIN
     throw new Error('Package creation timed out.');
   }
 
-  const result = await executeCommand(`sf package version create report -i ${jobId} --json`);
+  const result = await executeCommand(`npx @salesforce/cli package version create report -i ${jobId} --json`);
 
   const data = result.result[0];
 

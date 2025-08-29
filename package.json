@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.1"
+    "@actions/github": "^6.0.1",
+    "@salesforce/cli": "^2.103.7"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",

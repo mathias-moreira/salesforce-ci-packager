@@ -32,9 +32,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
 
-      - name: Install Salesforce CLI
-        run: npm install @salesforce/cli --global
-
       - name: Create package version
         uses: ./
         id: create-package-version

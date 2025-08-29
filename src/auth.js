@@ -51,7 +51,7 @@ const createAuthFile = (authUrl) => {
  * Typically, you should call createAuthFile() before calling this function.
  */
 const authorizeOrg = async (targetDevHub) => {
-  return await executeCommand(`sf org login sfdx-url -f ./${AUTH_FILE} -a ${targetDevHub} -d --json`);
+  return await executeCommand(`npx @salesforce/cli org login sfdx-url -f ./${AUTH_FILE} -a ${targetDevHub} -d --json`);
 }
 
 /**
