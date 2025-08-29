@@ -129,3 +129,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 💡 **Tip:** Store your `auth-url` as a GitHub secret to keep your credentials secure!
 
 ⭐ If you find this action helpful, consider giving it a star on GitHub!
+
+---
+This is a test. Used to test branch protection rules and workflows.
