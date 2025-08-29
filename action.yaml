@@ -6,8 +6,8 @@ inputs:
     description: The URL of the Dev Hub org. This is used to create an auth file for the Dev Hub org.
     required: true
   packaging-directory:
-    description: The directory containing the Salesforce project.
-    required: true
+    description: The directory containing the Salesforce project. If not specified, the action will run in the same directory as the action.
+    required: false
   package:
     description: ID (starts with 0Ho) or alias of the package to create a version of.
     required: true
