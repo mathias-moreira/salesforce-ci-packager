@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "rollup --config rollup.config.js",
-    "start": "act --container-architecture linux/amd64 --artifact-server-path -s"
+    "start": "act --container-architecture linux/amd64 --artifact-server-path -s -W .github/workflows/local-development.yml"
   },
   "repository": {
     "type": "git",
