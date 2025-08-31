@@ -1,4 +1,4 @@
-import require$$1, { existsSync, readFileSync, writeFileSync } from 'fs';
+import require$$1, { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
 import require$$1$5, { join } from 'path';
