@@ -1,6 +1,6 @@
+import require$$1, { existsSync, readFileSync, writeFileSync } from 'fs';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
-import require$$1, { writeFileSync, unlinkSync, readFileSync, existsSync } from 'fs';
 import require$$1$5, { join } from 'path';
 import require$$2 from 'http';
 import require$$3 from 'https';
@@ -27247,8 +27247,34 @@ function requireCore () {
 var coreExports = requireCore();
 
 /**
+ * Gets the path to the package directory (path that will contain the package contents) from sfdx-project.json file
+ *
+ * @function getPackagePath
+ * @param {Object} params - Parameters for getting the package path
+ * @param {Object} params.sfdxProjectConfig - The sfdx-project.json configuration object
+ * @param {string} params.packageName - The name of the package to get the path for
+ * @returns {string|null} The corresponding path from the project file or null if not found
+ */
+const getPackagePath = ({sfdxProjectConfig, packageName}) => {
+  // Look for a directory with a package name that matches
+  if (sfdxProjectConfig.packageDirectories && sfdxProjectConfig.packageDirectories.length > 0) {
+    const packageDirectory = sfdxProjectConfig.packageDirectories.find((packageDirectory) => {
+      return packageDirectory.name === packageName;
+    });
+
+    if (packageDirectory && packageDirectory.path) {
+      // Return the path to the package directory
+      return packageDirectory.path;
+    }
+  }
+
+  // No package directory found for the given package name
+  return null;
+};
+
+/**
  * @module execute-command
- * @description A utility module that provides a Promise-based wrapper specifically for executing Salesforce CLI commands that return JSON output
+ * @description A utility module that provides a Promise-based wrapper for executing Salesforce CLI commands that return JSON output
  */
 
 
@@ -27257,20 +27283,20 @@ var coreExports = requireCore();
  * 
  * @async
  * @function executeCommand
- * @param {string} command - The Salesforce CLI command to execute (must include --json flag)
+ * @param {Object} params - The parameters for command execution
+ * @param {string} params.command - The Salesforce CLI command to execute (must include --json flag)
  * @returns {Promise<Object>} A promise that resolves with the parsed command result from Salesforce CLI
+ * @property {number} status - The exit code of the command (0 for success)
+ * @property {Object} result - The parsed result data from the command output
  * @throws {Object} Rejects with the parsed error output when command fails with non-zero status
  * @throws {Error} Rejects with parsing error if JSON parsing fails
  * @throws {Error} Rejects with execution error if command execution fails
  * 
  * @example
  * // Execute a Salesforce CLI command
- * try {
- *   const result = await executeCommand('sf package version create --json');
- *   console.log(result);
- * } catch (error) {
- *   console.error('Command failed:', error);
- * }
+ *   const result = await executeCommand({
+ *     command: 'npx @salesforce/cli package version create --package MyPackage --json'
+ *   });
  * 
  * @remarks
  * This utility is specifically designed to work with Salesforce CLI commands that return JSON output.
@@ -27278,7 +27304,7 @@ var coreExports = requireCore();
  * The function resolves with the complete parsed JSON output from the CLI command.
  * If the command returns a non-zero status, the promise will reject with the parsed error output.
  */
-function executeCommand(command) {
+function executeCommand({command}) {
     return new Promise((resolve, reject) => {
         try {
             exec$1(command, (error, stdout, stderr) => {
@@ -27302,245 +27328,340 @@ function executeCommand(command) {
 }
 
 /**
- * @module auth
- * @description Provides utilities for Salesforce org authentication using URL-based authentication files
- */
-
-
-/**
- * @constant {string} AUTH_FILE - The name of the temporary authentication file
- */
-const AUTH_FILE = "authFile.txt";
-
-/**
- * Creates a temporary file containing the Salesforce authentication URL
- * 
- * @function createAuthFile
- * @param {string} authUrl - The Salesforce authentication URL
- * @returns {void}
- * 
- * @example
- * // Create an authentication file with the provided URL
- * createAuthFile('force://CLIENT_ID:CLIENT_SECRET:REFRESH_TOKEN@INSTANCE_URL');
- */
-const createAuthFile = (authUrl) => {
-    writeFileSync(AUTH_FILE, authUrl);
-};
-
-/**
- * Authorizes a Salesforce org using the authentication file
- * 
- * @async
- * @function authorizeOrg
- * @param {string} targetDevHub - The alias to assign to the authenticated org
- * @returns {Promise<Object>} The result of the authentication command
- * @property {boolean} success - Indicates if the authentication was successful
- * @property {Object|null} error - Error information if authentication failed, null otherwise
- * @property {Object|null} data - Authentication data if successful, null otherwise
- * @throws {Error} If the authentication file does not exist
- * 
- * @example
- * // First create the auth file, then authorize the org
- * createAuthFile('force://CLIENT_ID:CLIENT_SECRET:REFRESH_TOKEN@INSTANCE_URL');
- * const result = await authorizeOrg('DevHub');
- * if (result.success) {
- *   console.log('Successfully authenticated to the org');
- * }
- * 
- * @remarks
- * The authentication file (AUTH_FILE) must exist before calling this function.
- * Typically, you should call createAuthFile() before calling this function.
- */
-const authorizeOrg = async (targetDevHub) => {
-  return await executeCommand(`npx @salesforce/cli org login sfdx-url -f ./${AUTH_FILE} -a ${targetDevHub} -d --json`);
-};
-
-/**
- * Deletes the temporary authentication file
- * 
- * @function deleteAuthFile
- * @returns {void}
- * 
- * @example
- * // Delete the authentication file after successful authentication
- * deleteAuthFile();
- */
-const deleteAuthFile = () => {
-  unlinkSync(AUTH_FILE);
-};
-
-/**
- * @module packaging
- * @description Provides utilities for creating and managing Salesforce package versions
- */
-
-
-/**
- * @constant {string} SFDX_PROJECT_FILE - Path to the SFDX project configuration file
- */
-const SFDX_PROJECT_FILE = 'sfdx-project.json';
-
-/**
- * @constant {number} POLLING_INTERVAL - Time in milliseconds between status check attempts (1 minute)
- */
-const POLLING_INTERVAL = 60000; // 1 minute
-
-/**
- * @constant {number} MAX_RETRIES - Maximum number of status check attempts before timing out (1 hour max wait time)
- */
-const MAX_RETRIES = 60; // 1 hour max wait time
-
-/**
  * Updates the package aliases in the sfdx-project.json file with the new package version
  *
  * @function updatePackageAliases
- * @param {Object} packageResult - The package creation result object
- * @param {string} packageResult.Package2Name - The name of the package
- * @param {string} packageResult.VersionNumber - The version number of the package
- * @param {string} packageResult.SubscriberPackageVersionId - The subscriber package version ID
+ * @param {Object} params - Parameters for updating the package aliases
+ * @param {Object} params.sfdxProjectConfig - The sfdx-project.json configuration object
+ * @param {string} params.package2Name - The name of the package
+ * @param {string} params.versionNumber - The version number of the package
+ * @param {string} params.subscriberPackageVersionId - The subscriber package version ID
+ * @param {Object} packageResult - The package updated sfdx-project.json configuration object
  * @returns {void}
  *
  * @example
  * // Update package aliases with the package result
  * updatePackageAliases({
+ *   sfdxProjectConfig: {
+ *     packageAliases: {
+ *       'MyPackage@1.0.0.1': '04t...'
+ *     }
+ *   },
  *   Package2Name: 'MyPackage',
  *   VersionNumber: '1.0.0.1',
  *   SubscriberPackageVersionId: '04t...'
  * });
  */
-const updatePackageAliases = (packageResult) => {
-  let file = JSON.parse(readFileSync(SFDX_PROJECT_FILE, 'utf8'));
-
-  if (!file.packageAliases) {
-    file.packageAliases = {};
+const updatePackageAliases = ({ sfdxProjectConfig, package2Name, versionNumber, subscriberPackageVersionId }) => {
+  if (!sfdxProjectConfig.packageAliases) {
+    sfdxProjectConfig.packageAliases = {};
   }
 
-  file.packageAliases[packageResult.Package2Name + '@' + packageResult.VersionNumber] =
-    packageResult.SubscriberPackageVersionId;
-  writeFileSync(SFDX_PROJECT_FILE, JSON.stringify(file, null, 2));
+  sfdxProjectConfig.packageAliases[package2Name + '@' + versionNumber] = subscriberPackageVersionId;
+
+  return sfdxProjectConfig;
 };
 
 /**
- * Creates a new package version for the specified package ID
+ * Creates a new package in the Dev Hub org
  *
  * @async
- * @function createPackageVersion
- * @param {string} packageId - The ID or alias of the package to create a version for
- * @param {Object} options - Options for package version creation
- * @param {string} options.targetDevHub - Username or alias of the Dev Hub org
- * @param {string} [options.installationKeyBypass] - Bypass the installation key requirement
- * @param {string} [options.installationKey] - Installation key for the package version
- * @param {string} [options.skipValidation] - Skip validation during package version creation
- * @param {string} [options.codeCoverage] - Calculate code coverage during package version creation
- * @param {string} [options.asyncValidation] - Return a new package version before completing package validations
- * @param {string} [options.path] - Path to directory that contains the contents of the package
- * @param {string} [options.versionName] - Name of the package version to be created
- * @param {string} [options.versionDescription] - Description of the package version to be created
- * @param {string} [options.versionNumber] - Version number in the format major.minor.patch.build
- * @returns {Promise<Object>} The result of the package version creation
- * @property {boolean} success - Indicates if the package version creation was successful
- * @property {Object|null} data - Package version creation data if successful
- * @property {Object|null} error - Error information if creation failed
+ * @function sfPackageCreate
+ * @param {Object} params - Parameters for package creation
+ * @param {string} params.targetDevHub - Username or alias of the Dev Hub org
+ * @param {string} params.name - Name of the package to create
+ * @param {string} params.packageType - Type of package ('Managed' or 'Unlocked')
+ * @param {boolean} [params.noNamespace] - Create the package with no namespace (for unlocked packages only)
+ * @param {boolean} [params.orgDependent] - Depends on unpackaged metadata in the installation org (for unlocked packages only)
+ * @param {string} [params.errorNotificationUsername] - Active Dev Hub user designated to receive email notifications for package errors
+ * @param {string} [params.apiVersion] - Override the API version used for API requests made by this command
+ * @returns {Promise<Object>} The result of the package creation command
+ * @property {number} status - The exit code of the command (0 for success)
+ * @property {Object} result - The result data containing package information
+ * @property {string} result.Id - The ID of the created package (0Ho format)
+ * @property {string} result.SubscriberPackageId - The subscriber package ID (033 format)
+ * @property {string} result.Name - The name of the created package
+ * @property {string} result.Description - The description of the package
+ * @property {string} result.NamespacePrefix - The namespace prefix of the package
+ * @property {string} result.ContainerOptions - The container options of the package
+ * @throws {Object} Rejects with error information if the command fails
  *
  * @example
- * // Create a package version
- * const result = await createPackageVersion('0Ho1A0000000001', {
- *   targetDevHub: 'DevHub'
+ * // Create a new unlocked package with no namespace
+ * try {
+ *   const result = await sfPackageCreate({
+ *     targetDevHub: 'DevHub',
+ *     name: 'MyUnlockedPackage',
+ *     packageType: 'Unlocked',
+ *     noNamespace: true
+ *   });
+ */
+const sfPackageCreate = async ({targetDevHub, name, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
+    let command = `npx @salesforce/cli package create --target-dev-hub ${targetDevHub}`;
+    
+    // Add required parameters
+    if (name) {
+      command += ` --name ${name}`;
+    }
+    
+    if (packageType) {
+      command += ` --package-type ${packageType}`;
+    }
+  
+    if (noNamespace === true) {
+      command += ` --no-namespace`;
+    }
+    
+    if (orgDependent === true) {
+      command += ` --org-dependent`;
+    }
+    
+    if (errorNotificationUsername) {
+      command += ` --error-notification-username ${errorNotificationUsername}`;
+    }
+    
+    if (apiVersion) {
+      command += ` --api-version ${apiVersion}`;
+    }
+    
+    // Always return JSON output
+    command += ` --json`;
+    
+    return executeCommand({command});
+  };
+
+/**
+ * Retrieves a list of packages from the specified Dev Hub org
+ *
+ * @async
+ * @function sfPackageList
+ * @param {Object} params - Parameters for listing packages
+ * @param {string} params.targetDevHub - Username or alias of the Dev Hub org
+ * @returns {Promise<Object>} The result of the package list command
+ * @property {number} status - The exit code of the command (0 for success)
+ * @property {Array<Object>} result - Array of package objects
+ * @property {string} result[].Id - The ID of the package (0Ho format)
+ * @property {string} result[].SubscriberPackageId - The subscriber package ID (033 format)
+ * @property {string} result[].Name - The name of the package
+ * @property {string} [result[].Description] - The description of the package
+ * @property {string} [result[].NamespacePrefix] - The namespace prefix of the package
+ * @property {string} result[].ContainerOptions - The container options of the package (e.g., "Unlocked")
+ * @property {string} [result[].ConvertedFromPackageId] - The ID of the package this was converted from
+ * @property {string} result[].Alias - The alias of the package
+ * @property {string} result[].IsOrgDependent - Indicates if the package is org dependent ("Yes" or "No")
+ * @property {string} [result[].PackageErrorUsername] - The username associated with package errors
+ * @property {boolean} result[].AppAnalyticsEnabled - Indicates if app analytics are enabled
+ * @property {string} result[].CreatedBy - The ID of the user who created the package
+ * @property {Array<Object>} [warnings] - Any warnings returned by the command
+ * @throws {Object} Rejects with error information if the command fails
+ * 
+ * @example
+ * // Get all packages in the Dev Hub
+ * const packages = await sfPackageList({
+ *   targetDevHub: 'MyDevHub'
  * });
- * if (result.success) {
- *   console.log('Package version creation started:', result.data.result.Id);
+ * 
+ * if (packages.status === 0) {
+ *   console.log(`Found ${packages.result.length} packages:`);
+ *   packages.result.forEach(pkg => {
+ *     console.log(`- ${pkg.Name} (${pkg.Id})`);
+ *   });
  * }
  */
-async function createPackageVersion(packageId, options) {
-  let command = `npx @salesforce/cli package version create --package ${packageId} --target-dev-hub ${options.targetDevHub} --json`;
+const sfPackageList = async (targetDevHub) => {
+    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub ${targetDevHub} --verbose --json`});
+};
+
+/**
+ * Creates a new Salesforce package version for the specified package ID
+ *
+ * @async
+ * @function sfPackageVersionCreate
+ * @param {Object} params - Parameters for package version creation
+ * @param {string} params.packageId - The ID or alias of the package to create a version for
+ * @param {string} params.targetDevHub - Username or alias of the Dev Hub org
+ * @param {string} [params.installationKeyBypass] - If 'true', bypass the installation key requirement
+ * @param {string} [params.installationKey] - Installation key for the package version (required if installationKeyBypass is not 'true')
+ * @param {string} [params.skipValidation] - If 'true', skip validation during package version creation
+ * @param {string} [params.codeCoverage] - If 'true', calculate code coverage during package version creation
+ * @param {string} [params.asyncValidation] - If 'true', return a new package version before completing package validations
+ * @returns {Promise<Object>} The result of the package version creation command
+ * @property {number} status - The exit code of the command (0 for success)
+ * @property {Object} result - The result data containing job information
+ * @property {string} result.Id - The job ID for tracking the package version creation
+ * @property {string} result.Status - Initial status of the package creation job
+ * @throws {Object} Rejects with error information if the command fails
+ * 
+ * @remarks
+ * The path, version name, version description, and version number are read from sfdx-project.json.
+ * This function starts the package version creation process asynchronously. To get the final
+ * package version details, you need to poll the status using sfPackageVersionCreateReport.
+ *
+ * @example
+ * // Create a package version with installation key
+ * const result = await sfPackageVersionCreate({
+ *   packageId: '0Ho1A0000000001',
+ *   targetDevHub: 'DevHub',
+ *   installationKey: 'MySecureKey123',
+ *   codeCoverage: 'true'
+ * });
+ */
+async function sfPackageVersionCreate({packageId, targetDevHub, installationKeyBypass, installationKey, skipValidation, codeCoverage, asyncValidation}) {
+    let command = `npx @salesforce/cli package version create --package ${packageId} --target-dev-hub ${targetDevHub}`;
+    
+    // Add installation key bypass option if provided
+    if (installationKeyBypass === 'true') {
+      command += ` --installation-key-bypass`;
+    }
+    
+    // Add installation key if provided
+    if (installationKey) {
+      command += ` --installation-key ${installationKey}`;
+    }
+    
+    // Add skip validation option if provided
+    if (skipValidation === 'true') {
+      command += ` --skip-validation`;
+    }
+    
+    // Add code coverage option if provided
+    if (codeCoverage === 'true') {
+      command += ` --code-coverage`;
+    }
+    
+    // Add async validation option if provided
+    if (asyncValidation === 'true') {
+      command += ` --async-validation`;
+    }
   
-  // Add installation key bypass option if provided
-  if (options.installationKeyBypass === 'true') {
-    command += ` --installation-key-bypass`;
+    // Always return JSON output
+    command += ` --json`;
+  
+    return await executeCommand({command});
   }
-  
-  // Add installation key if provided
-  if (options.installationKey) {
-    command += ` --installation-key ${options.installationKey}`;
-  }
-  
-  // Add skip validation option if provided
-  if (options.skipValidation === 'true') {
-    command += ` --skip-validation`;
-  }
-  
-  // Add code coverage option if provided
-  if (options.codeCoverage === 'true') {
-    command += ` --code-coverage`;
-  }
-  
-  // Add async validation option if provided
-  if (options.asyncValidation === 'true') {
-    command += ` --async-validation`;
-  }
-  
-  // Add path if provided
-  if (options.path) {
-    command += ` --path ${options.path}`;
-  }
-  
-  // Add version name if provided
-  if (options.versionName) {
-    command += ` --version-name ${options.versionName}`;
-  }
-  
-  // Add version description if provided
-  if (options.versionDescription) {
-    command += ` --version-description ${options.versionDescription}`;
-  }
-  
-  // Add version number if provided
-  if (options.versionNumber) {
-    command += ` --version-number ${options.versionNumber}`;
-  }
-  
-  return await executeCommand(command);
-}
+
+/**
+ * Retrieves the status of a package version creation job
+ *
+ * @async
+ * @function sfPackageVersionCreateReport
+ * @param {Object} params - Parameters for retrieving package version status
+ * @param {string} params.jobId - The job ID of the package version creation request
+ * @returns {Promise<Object>} The result of the status check command
+ * @property {number} status - The exit code of the command (0 for success)
+ * @property {Array<Object>} result - Array containing the package version creation status
+ * @property {string} result[0].Id - The job ID
+ * @property {string} result[0].Status - The status of the package version creation (Success, Error, InProgress)
+ * @property {string} [result[0].Package2Id] - The package ID
+ * @property {string} [result[0].Package2VersionId] - The package version ID
+ * @property {string} [result[0].SubscriberPackageVersionId] - The subscriber package version ID (04t format)
+ * @property {string} [result[0].VersionNumber] - The version number
+ * @property {string} [result[0].Error] - Error message if status is Error
+ * @throws {Object} Rejects with error information if the command fails
+ * 
+ * @example
+ * // Check status of a package version creation job
+ * const status = await sfPackageVersionCreateReport({
+ *   jobId: '08c...'
+ * });
+ */
+const sfPackageVersionCreateReport = async ({jobId}) => {
+  return await executeCommand({command: `npx @salesforce/cli package version create report -i ${jobId} --json`});
+};
+
+/**
+ * Authorizes a Salesforce org using the authentication file
+ *
+ * @async
+ * @function sfOrgLogin
+ * @param {Object} params - The parameters for the org login
+ * @param {string} params.targetDevHub - The alias to assign to the authenticated org
+ * @param {string} params.authFileName - The name of the temporary authentication file
+ * @returns {Promise<Object>} The result of the authentication command
+ * @property {boolean} success - Indicates if the authentication was successful
+ * @property {Object|null} error - Error information if authentication failed, null otherwise
+ * @property {Object|null} data - Authentication data if successful, null otherwise
+ * @throws {Error} If the authentication file does not exist or if the command execution fails
+ *
+ * @example
+ * // First create the auth file, then authorize the org
+ * await createAuthFile({
+ *   authUrl: 'force://CLIENT_ID:CLIENT_SECRET:REFRESH_TOKEN@INSTANCE_URL',
+ *   authFileName: 'auth.key'
+ * });
+ * const result = await sfOrgLogin({
+ *   targetDevHub: 'DevHub',
+ *   authFileName: 'auth.key'
+ * });
+ * if (result.success) {
+ *   console.log('Successfully authenticated to the org');
+ * }
+ *
+ * @remarks
+ * The authentication file must exist before calling this function.
+ * Typically, you should call createAuthFile() before calling this function.
+ * This function uses the Salesforce CLI to authenticate with the org.
+ */
+const sfOrgLogin = async ({targetDevHub, authFileName}) => {
+  coreExports.info(`authFilePath: ${authFileName}`);
+  coreExports.info(`targetDevHub: ${targetDevHub}`);
+  return await executeCommand({command: `npx @salesforce/cli org login sfdx-url -f ./${authFileName} -a ${targetDevHub} -d --json`});
+};
+
+/**
+ * @module packaging-poll
+ * @description Provides utilities for polling and monitoring Salesforce package version creation status
+ */
+
+
+/**
+ * Default time in milliseconds between status check attempts (1 minute)
+ * 
+ * @constant {number} POLLING_INTERVAL
+ */
+const POLLING_INTERVAL = 60000; // 1 minute
+
+/**
+ * Default maximum number of status check attempts before timing out (1 hour max wait time)
+ * 
+ * @constant {number} MAX_RETRIES
+ */
+const MAX_RETRIES = 60; // 1 hour max wait time
 
 /**
  * Polls the status of a package version creation job until it completes or times out
  *
  * @async
  * @function pollPackageStatus
- * @param {string} jobId - The job ID of the package version creation request
- * @param {number} [retryCount=0] - Current retry attempt (used internally for recursion)
- * @param {number} [pollingInterval=POLLING_INTERVAL] - Time in milliseconds between status checks
- * @param {number} [maxRetries=MAX_RETRIES] - Maximum number of retry attempts
+ * @param {Object} params - The parameters for polling package status
+ * @param {string} params.jobId - The job ID of the package version creation request
+ * @param {number} [params.retryCount=0] - Current retry attempt (used internally for recursion)
+ * @param {number} [params.pollingInterval=POLLING_INTERVAL] - Time in milliseconds between status checks
+ * @param {number} [params.maxRetries=MAX_RETRIES] - Maximum number of retry attempts
  * @returns {Promise<Object>} The final package version creation result
- * @property {boolean} success - Always true if this function returns (otherwise it throws)
  * @property {string} Id - The job ID
- * @property {string} Status - The status of the package version creation
+ * @property {string} Status - The status of the package version creation (always "Success" if function returns)
  * @property {string} Package2Id - The package ID
  * @property {string} Package2VersionId - The package version ID
- * @property {string} SubscriberPackageVersionId - The subscriber package version ID
- * @property {string} VersionNumber - The version number
- * @property {string} InstallationLink - URL to install the package
- * @throws {Error} If the package creation times out or fails
+ * @property {string} SubscriberPackageVersionId - The subscriber package version ID (04t format)
+ * @property {string} VersionNumber - The version number in format major.minor.patch.build
+ * @property {string} InstallationLink - URL to install the package in a Salesforce org
+ * @throws {Error} If the package creation times out after maxRetries attempts
+ * @throws {Error} If the package creation fails with an error status
  *
  * @example
  * // Poll for package status after creating a package version
- * const createResult = await createPackageVersion('0Ho1A0000000001', { targetDevHub: 'DevHub' });
- * if (createResult.success) {
- *   try {
- *     const packageResult = await pollPackageStatus(createResult.data.result.Id);
- *     console.log('Package version created successfully:', packageResult.SubscriberPackageVersionId);
- *     console.log('Installation URL:', packageResult.InstallationLink);
- *   } catch (error) {
- *     console.error('Package creation failed:', error.message);
- *   }
- * }
+ * const createResult = await sfPackageVersionCreate({
+ *   packageId: '0Ho1A0000000001',
+ *   targetDevHub: 'DevHub'
+ * });
  */
-async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLING_INTERVAL, maxRetries = MAX_RETRIES) {
+async function pollPackageStatus({jobId, retryCount = 0, pollingInterval = POLLING_INTERVAL, maxRetries = MAX_RETRIES}) {
   if (retryCount >= maxRetries) {
     throw new Error('Package creation timed out.');
   }
 
-  const result = await executeCommand(`npx @salesforce/cli package version create report -i ${jobId} --json`);
+  const result = await sfPackageVersionCreateReport({jobId});
 
   const data = result.result[0];
 
@@ -27553,148 +27674,197 @@ async function pollPackageStatus(jobId, retryCount = 0, pollingInterval = POLLIN
     throw new Error(`Package creation failed: ${data.Error}`);
   }
 
-  console.log(`[${new Date().toLocaleTimeString()}] - Still in progress... Status: ${data.Status}`);
+  info(`[${new Date().toLocaleTimeString()}] - Still in progress... Status: ${data.Status}`);
   await new Promise((resolve) => setTimeout(resolve, pollingInterval));
-  return pollPackageStatus(jobId, retryCount + 1, pollingInterval, maxRetries);
+  return pollPackageStatus({jobId, retryCount: retryCount + 1, pollingInterval, maxRetries});
 }
 
 /**
- * @module index
- * @description Main entry point for the Salesforce CI Packager (2GP) GitHub Action
- */
-
-
-/**
- * @constant {string} SFDX_PROJECT_JSON - Path to the SFDX project configuration file
- */
-const SFDX_PROJECT_JSON = 'sfdx-project.json';
-
-/**
- * Validates all input parameters for the action
+ * Reads the JSON file
  * 
- * @function validateInputs
- * @returns {Object|null} Object with validated inputs or null if validation fails
+ * @param {Object} params - Parameters for reading the JSON file
+ * @param {string} params.filePath - The path to the JSON file
+ * @returns {Object} The JSON file
+ * @throws {Error} If the JSON file does not exist
  */
-const validateInputs = () => {
-  const packagingDirectory = coreExports.getInput('packaging-directory');
-
-  // Validate packaging directory if specified
-  if (packagingDirectory) {
-    const packagingDirPath = join(process.cwd(), packagingDirectory);
-    if (!existsSync(packagingDirPath)) {
-      coreExports.setFailed(`Packaging directory does not exist: ${packagingDirPath}`);
-      return null;
+const readJsonFile = ({filePath}) => {
+    if (!existsSync(filePath)) {
+      throw new Error(`Project file not found: ${filePath}`);
     }
-  }
-
-  // Validate sfdx-project.json exists in the current directory
-  if (!existsSync(join(process.cwd(), packagingDirectory, SFDX_PROJECT_JSON))) {
-    coreExports.setFailed(`${SFDX_PROJECT_JSON} not found in the current directory`);
-    return null;
-  }
-
-  // Validate auth URL
-  const authUrl = coreExports.getInput('auth-url');
-  if (!authUrl) {
-    coreExports.setFailed('Auth URL is required');
-    return null;
-  }
-
-  // Validate target dev hub
-  const targetDevHub = coreExports.getInput('target-dev-hub');
-  if (!targetDevHub) {
-    coreExports.setFailed('Target Dev Hub is required');
-    return null;
-  }
-
-  // Validate package ID
-  const packageId = coreExports.getInput('package');
-  if (!packageId) {
-    coreExports.setFailed('Package ID or alias is required');
-    return null;
-  }
-
-  // Validate installation key parameters
-  const installationKeyBypass = coreExports.getInput('installation-key-bypass');
-  const installationKey = coreExports.getInput('installation-key');
-
-  if (!installationKeyBypass && !installationKey) {
-    coreExports.setFailed('Either installation-key or installation-key-bypass must be provided');
-    return null;
-  }
-
-  if (installationKeyBypass && installationKey) {
-    coreExports.setFailed('Cannot provide both installation-key and installation-key-bypass');
-    return null;
-  }
-
-  // Validate skip-validation and code-coverage
-  const skipValidation = coreExports.getInput('skip-validation');
-  const codeCoverage = coreExports.getInput('code-coverage');
   
-  if (skipValidation === 'true' && codeCoverage === 'true') {
-    coreExports.setFailed('Cannot specify both skip-validation and code-coverage');
-    return null;
-  }
-  
-  // Validate timeout
-  const timeout = coreExports.getInput('timeout');
-  const maxRetries = timeout ? parseInt(timeout) : 60; // Default 60 minutes
-  
-  if (maxRetries <= 0) {
-    coreExports.setFailed('Timeout must be a positive number');
-    return null;
-  }
-  
-  // Validate polling interval
-  const pollingInterval = coreExports.getInput('polling-interval');
-  const pollingIntervalMs = pollingInterval ? parseInt(pollingInterval) * 1000 : 60000; // Default 60 seconds
-  
-  if (pollingIntervalMs <= 0) {
-    coreExports.setFailed('Polling interval must be a positive number');
-    return null;
-  }
-  
-  // Get additional inputs
-  const asyncValidation = coreExports.getInput('async-validation');
-  const path = coreExports.getInput('path');
-  const versionName = coreExports.getInput('version-name');
-  const versionDescription = coreExports.getInput('version-description');
-  const versionNumber = coreExports.getInput('version-number');
-  
-  return { 
-    packagingDirectory,
-    authUrl,
-    targetDevHub,
-    packageId,
-    installationKeyBypass,
-    installationKey,
-    skipValidation,
-    codeCoverage,
-    maxRetries,
-    pollingIntervalMs,
-    asyncValidation,
-    path,
-    versionName,
-    versionDescription,
-    versionNumber
+    return JSON.parse(readFileSync(filePath, 'utf8'));
   };
+
+/**
+ * Checks if a package exists in the specified Dev Hub org
+ *
+ * @async
+ * @function checkIfPackageExists
+ * @param {Object} params - Parameters for checking package existence
+ * @param {string} params.packageId - The ID, name, or alias of the package to check
+ * @param {string} params.targetDevHub - The Dev Hub org alias or username to check against
+ * @returns {Promise<boolean>} True if the package exists, false otherwise
+ * @throws {Error} If package list retrieval fails or if the command execution fails
+ * 
+ * @example
+ * // Check if a package exists by ID
+ * try {
+ *   const exists = await checkIfPackageExists({
+ *     packageId: '0Ho1A0000000001',
+ *     targetDevHub: 'DevHub'
+ *   });
+ */
+const checkIfPackageExists = async ({ packageId, targetDevHub }) => {
+    const packages = await sfPackageList(targetDevHub);
+  
+    if (packages.status !== 0) {
+      throw new Error('Failed to get packages');
+    }
+  
+    return packages.result.some((pkg) => pkg.Id === packageId || pkg.Name === packageId || pkg.Alias === packageId );
+  };
+
+/**
+ * Creates a temporary file containing the Salesforce authentication URL
+ * 
+ * @function createAuthFile
+ * @param {Object} params - Parameters for creating the auth file
+ * @param {string} params.authFileName - The name of the temporary authentication file to create
+ * @param {string} params.authUrl - The Salesforce authentication URL in sfdx-url format
+ * @returns {void}
+ * @throws {Error} If file writing fails
+ * 
+ * @example
+ * // Create an authentication file with the provided URL
+ * createAuthFile({
+ *   authFileName: 'auth.key',
+ *   authUrl: 'force://CLIENT_ID:CLIENT_SECRET:REFRESH_TOKEN@INSTANCE_URL'
+ * });
+ * 
+ * @remarks
+ * This file is typically used temporarily for authentication and should be deleted after use.
+ */
+const createAuthFile = ({authFileName, authUrl}) => {
+    writeFileSync(authFileName, authUrl);
 };
 
 /**
- * Main function that orchestrates the package version creation process.
+ * Path to the SFDX project configuration file
  * 
- * @function main
- * @returns {Promise<void>}
+ * @constant {string} SFDX_PROJECT_JSON
  */
-const main = async () => {
-  try {
-    // Validate all inputs
-    const inputs = validateInputs();
-    if (!inputs) return;
-    
-    // Extract validated inputs
-    const { 
+const SFDX_PROJECT_JSON$1 = 'sfdx-project.json';
+
+/**
+ * Validates all input parameters required for the Salesforce packaging action
+ *
+ * @function validateInputs
+ * @returns {Object|null} Object with validated inputs or null if validation fails
+ * @property {string} packagingDirectory - Directory containing the packaging files
+ * @property {string} authUrl - Salesforce authentication URL
+ * @property {string} targetDevHub - Target Dev Hub org alias
+ * @property {string} packageId - Package ID or alias
+ * @property {string} installationKeyBypass - Whether to bypass installation key requirement
+ * @property {string} installationKey - Installation key for the package
+ * @property {string} skipValidation - Whether to skip validation during package creation
+ * @property {string} codeCoverage - Whether to calculate code coverage during package creation
+ * @property {number} maxRetries - Maximum number of polling retries (timeout in minutes)
+ * @property {number} pollingIntervalMs - Polling interval in milliseconds
+ * @property {string} asyncValidation - Whether to use async validation
+ * 
+ * @example
+ * const inputs = validateInputs();
+ * if (inputs) {
+ *   console.log('All inputs are valid:', inputs);
+ *   // Proceed with packaging operation
+ * } else {
+ *   console.log('Input validation failed');
+ * }
+ */
+const validateInputs = () => {
+    const packagingDirectory = coreExports.getInput('packaging-directory');
+  
+    // Validate packaging directory if specified
+    if (packagingDirectory) {
+      const packagingDirPath = join(process.cwd(), packagingDirectory);
+      if (!existsSync(packagingDirPath)) {
+        coreExports.setFailed(`Packaging directory does not exist: ${packagingDirPath}`);
+        return null;
+      }
+    }
+  
+    // Validate sfdx-project.json exists in the current directory
+    if (!existsSync(join(process.cwd(), packagingDirectory, SFDX_PROJECT_JSON$1))) {
+      coreExports.setFailed(`${SFDX_PROJECT_JSON$1} not found in the current directory`);
+      return null;
+    }
+  
+    // Validate auth URL
+    const authUrl = coreExports.getInput('auth-url');
+    if (!authUrl) {
+      coreExports.setFailed('Auth URL is required');
+      return null;
+    }
+  
+    // Validate target dev hub
+    const targetDevHub = coreExports.getInput('target-dev-hub');
+    if (!targetDevHub) {
+      coreExports.setFailed('Target Dev Hub is required');
+      return null;
+    }
+  
+    // Validate package ID
+    const packageId = coreExports.getInput('package');
+    if (!packageId) {
+      coreExports.setFailed('Package ID or alias is required');
+      return null;
+    }
+  
+    // Validate installation key parameters
+    const installationKeyBypass = coreExports.getInput('installation-key-bypass');
+    const installationKey = coreExports.getInput('installation-key');
+  
+    if (!installationKeyBypass && !installationKey) {
+      coreExports.setFailed('Either installation-key or installation-key-bypass must be provided');
+      return null;
+    }
+  
+    if (installationKeyBypass && installationKey) {
+      coreExports.setFailed('Cannot provide both installation-key and installation-key-bypass');
+      return null;
+    }
+  
+    // Validate skip-validation and code-coverage
+    const skipValidation = coreExports.getInput('skip-validation');
+    const codeCoverage = coreExports.getInput('code-coverage');
+  
+    if (skipValidation === 'true' && codeCoverage === 'true') {
+      coreExports.setFailed('Cannot specify both skip-validation and code-coverage');
+      return null;
+    }
+  
+    // Validate timeout
+    const timeout = coreExports.getInput('timeout');
+    const maxRetries = timeout ? parseInt(timeout) : 60; // Default 60 minutes
+  
+    if (maxRetries <= 0) {
+      coreExports.setFailed('Timeout must be a positive number');
+      return null;
+    }
+  
+    // Validate polling interval
+    const pollingInterval = coreExports.getInput('polling-interval');
+    const pollingIntervalMs = pollingInterval ? parseInt(pollingInterval) * 1000 : 60000; // Default 60 seconds
+  
+    if (pollingIntervalMs <= 0) {
+      coreExports.setFailed('Polling interval must be a positive number');
+      return null;
+    }
+  
+    // Get additional inputs
+    const asyncValidation = coreExports.getInput('async-validation');
+  
+    return {
       packagingDirectory,
       authUrl,
       targetDevHub,
@@ -27705,59 +27875,139 @@ const main = async () => {
       codeCoverage,
       maxRetries,
       pollingIntervalMs,
-      asyncValidation,
-      path,
-      versionName,
-      versionDescription,
-      versionNumber
-    } = inputs;
-    
-    // Change to packaging directory if specified
-    if (packagingDirectory) {
-      coreExports.info(`Changing to packaging directory ${packagingDirectory}`);
-      process.chdir(join(process.cwd(), packagingDirectory));
+      asyncValidation
+    };
+  };
+
+const createPackage = async (sfdxProjectConfig, inputs) => {
+  const packagePath = getPackagePath(sfdxProjectConfig, inputs.packageId);
+  if (!packagePath) {
+    throw new Error(
+      'No package directory path found in project file. To create a package, please specify the package directory in the sfdx-project.json file.'
+    );
+  }
+
+  const { targetDevHub, name, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion } = inputs;
+
+  const result = await sfPackageCreate({targetDevHub, name, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion});
+  if (result.status !== 0) {
+    throw new Error('Failed to create package: ' + JSON.stringify(result, null, 2));
+  }
+};
+
+const createPackageVersion = async (sfdxProjectConfig, inputs) => {
+  const {
+    packageId,
+    targetDevHub,
+    installationKeyBypass,
+    installationKey,
+    skipValidation,
+    codeCoverage,
+    asyncValidation,
+    pollingIntervalMs,
+    maxRetries,
+  } = inputs;
+
+  const result = await sfPackageVersionCreate({
+    packageId,
+    targetDevHub,
+    installationKeyBypass,
+    installationKey,
+    skipValidation,
+    codeCoverage,
+    asyncValidation,
+  });
+
+  if (result.status !== 0) {
+    throw new Error('Failed to create package version: ' + JSON.stringify(result, null, 2));
+  }
+
+  const {Id} = result.result;
+
+  const packageResult = await pollPackageStatus({jobId: Id, retryCount: 0, pollingInterval: pollingIntervalMs, maxRetries: maxRetries});
+
+  // Update the package aliases in the sfdx-project.json file.
+  const updatedSfdxProjectConfig = updatePackageAliases({
+    sfdxProjectConfig,
+    package2Name: packageResult.Package2Name,
+    versionNumber: packageResult.VersionNumber,
+    subscriberPackageVersionId: packageResult.SubscriberPackageVersionId,
+  });
+
+  return { packageResult, updatedSfdxProjectConfig };
+};
+
+/**
+ * @module index
+ * @description Main entry point for the Salesforce CI Packager (2GP) GitHub Action
+ */
+
+
+const AUTH_FILE_NAME = './authFile.txt';
+const SFDX_PROJECT_JSON = 'sfdx-project.json';
+
+const setup = async () => {
+  // Validate all inputs
+  const inputs = validateInputs();
+
+  const { packagingDirectory, authUrl, targetDevHub } = inputs;
+
+  // Change to packaging directory if specified
+  if (packagingDirectory) {
+    coreExports.info(`Changing to packaging directory ${packagingDirectory}`);
+    process.chdir(join(process.cwd(), packagingDirectory));
+  }
+
+  coreExports.info('Creating authentication file');
+  createAuthFile({ authUrl, authFileName: AUTH_FILE_NAME });
+
+  coreExports.info(`Authenticating org ${targetDevHub}`);
+
+  await sfOrgLogin({ targetDevHub, authFileName: AUTH_FILE_NAME });
+
+  coreExports.info('Deleting authentication file');
+  unlinkSync(AUTH_FILE_NAME);
+
+  const sfdxProjectConfig = readJsonFile({ filePath: SFDX_PROJECT_JSON });
+
+  return {
+    sfdxProjectConfig,
+    inputs,
+  };
+};
+
+/**
+ * Main function that orchestrates the package version creation process.
+ *
+ * @function main
+ * @returns {Promise<void>}
+ */
+const main = async () => {
+  try {
+    // Setup the environment: validate inputs, change to the packaging directory, retrieve the sfdx project config and authenticate the org.
+    const { sfdxProjectConfig, inputs } = await setup();
+
+    // Check if the package exists
+    const exists = await checkIfPackageExists({ packageId: inputs.packageId, targetDevHub: inputs.targetDevHub });
+    if (!exists) {
+      // Create the package because it doesn't exist.
+      await createPackage(sfdxProjectConfig, inputs);
     }
 
-    coreExports.info('Creating authentication file');
-    createAuthFile(authUrl);
+    // Create the package version for an existing package or for the newly created package.
+    const { packageResult, updatedSfdxProjectConfig } = await createPackageVersion(sfdxProjectConfig, inputs);
 
-    coreExports.info(`Authenticating org ${targetDevHub}`);
-    await authorizeOrg(targetDevHub);
-
-    coreExports.info('Deleting authentication file');
-    deleteAuthFile();
-
-    coreExports.info(`Creating package version for package ${packageId} on dev hub ${targetDevHub}`);
-
-    const result = await createPackageVersion(packageId, {
-      targetDevHub,
-      installationKeyBypass,
-      installationKey,
-      skipValidation,
-      codeCoverage,
-      asyncValidation,
-      path,
-      versionName,
-      versionDescription,
-      versionNumber,
-    });
-
-    // Polling configuration already validated and extracted in validateInputs()
-
-    coreExports.info(`Polling package status for package version ${result.result.Id}`);
-    coreExports.info(`Using polling interval of ${pollingIntervalMs/1000} seconds with a maximum timeout of ${maxRetries} minutes`);
-    const packageResult = await pollPackageStatus(result.result.Id, 0, pollingIntervalMs, maxRetries);
+    writeFileSync(SFDX_PROJECT_JSON, JSON.stringify(updatedSfdxProjectConfig, null, 2));
 
     coreExports.setOutput('message', 'Package version created successfully');
-    coreExports.setOutput('package-version-id', packageResult.Id);
+    coreExports.setOutput('package-version-id', packageResult.Id);    
     coreExports.setOutput('package-version-number', packageResult.VersionNumber);
     coreExports.setOutput('package-report', JSON.stringify(packageResult, null, 2));
 
-    updatePackageAliases(packageResult);
   } catch (error) {
     // Log detailed error for debugging
-    coreExports.debug(`Full error details: ${JSON.stringify(error, null, 2)}`);
-    
+    coreExports.info(`Full error details: ${JSON.stringify(error, null, 2)}`);
+
     // Set more user-friendly error message
     const errorMessage = error.message || 'Unknown error occurred during package creation';
     coreExports.setOutput('message', errorMessage);
