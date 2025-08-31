@@ -3,7 +3,7 @@
  * @description Main entry point for the Salesforce CI Packager (2GP) GitHub Action
  */
 
-import { writeFileSync } from 'fs';
+import { writeFileSync, unlinkSync } from 'fs';
 import { info, setOutput, setFailed } from '@actions/core';
 import { join } from 'path';
 import {
