@@ -4,6 +4,7 @@
  */
 
 import { sfPackageVersionCreateReport } from '@sf';
+import { info } from '@actions/core';
 
 /**
  * Default time in milliseconds between status check attempts (1 minute)
