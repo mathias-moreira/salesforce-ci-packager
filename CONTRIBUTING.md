@@ -96,14 +96,20 @@ Each commit message consists of a **header**, a **body**, and a **footer**. The 
 
 The type must be one of the following:
 
-- **feat**: A new feature
-- **fix**: A bug fix
-- **docs**: Documentation only changes
-- **style**: Changes that do not affect the meaning of the code (white-space, formatting, etc)
-- **refactor**: A code change that neither fixes a bug nor adds a feature
-- **perf**: A code change that improves performance
-- **test**: Adding missing tests or correcting existing tests
-- **chore**: Changes to the build process or auxiliary tools and libraries
+- **feat**: A new feature (triggers a MINOR version increment)
+- **fix**: A bug fix (triggers a PATCH version increment)
+- **docs**: Documentation only changes (no version increment)
+- **style**: Changes that do not affect the meaning of the code (white-space, formatting, etc) (no version increment)
+- **refactor**: A code change that neither fixes a bug nor adds a feature (no version increment)
+- **perf**: A code change that improves performance (triggers a PATCH version increment)
+- **test**: Adding missing tests or correcting existing tests (no version increment)
+- **chore**: Changes to the build process or auxiliary tools and libraries (no version increment)
+
+#### Version Increments
+
+- **MAJOR**: Incremented when there are breaking changes (indicated by "BREAKING CHANGE:" in the commit footer)
+- **MINOR**: Incremented when new features are added (feat type)
+- **PATCH**: Incremented when bugs are fixed (fix type) or performance is improved (perf type)
 
 #### Examples
 
@@ -229,6 +235,8 @@ jobs:
           target-dev-hub: ${{ env.TARGET_DEV_HUB }}
           installation-key-bypass: true
           code-coverage: true
+          timeout: 90
+          polling-interval: 30
 
       # Use the action outputs
       - name: Show package details

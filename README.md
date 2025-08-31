@@ -29,20 +29,16 @@ Creating and managing Salesforce 2GP packages can be time-consuming and error-pr
 | Name | Description | Required | Default |
 |------|-------------|----------|---------|
 | `auth-url` | The URL of the Dev Hub org. This is used to create an auth file for the Dev Hub org. | Yes | |
-| `packaging-directory` | The directory containing the Salesforce project. | No | `./` |
-| `package` | ID (starts with 0Ho) or alias of the package to create a version of. | Yes | |
+| `package` | Alias of the package to create a version of. | Yes | |
 | `target-dev-hub` | Username or alias of the Dev Hub org. | Yes | |
-| `installation-key-bypass` | Bypass the installation key requirement. If you bypass this requirement, anyone can install your package. | No | |
-| `installation-key` | Installation key for the package version. Omit this flag if you specify `installation-key-bypass`. | No | |
-| `skip-validation` | Skip validation during package version creation; you can't promote unvalidated package versions. | No | |
-| `code-coverage` | Calculate and store the code coverage percentage by running the packaged Apex tests. | No | |
+| `packaging-directory` | The directory containing the Salesforce project. If not specified, the action will run in the same directory as the action. | No | |
+| `installation-key-bypass` | Bypass the installation key requirement. (either --installation-key or --installation-key-bypass is required). If you bypass this requirement, anyone can install your package. | No | |
+| `installation-key` | Installation key for the package version. The default is null. Omit this flag if you specify --installation-key-bypass. | No | |
+| `skip-validation` | Skip validation during package version creation; you can't promote unvalidated package versions. Skips validation of dependencies, package ancestors, and metadata during package version creation. | No | |
+| `code-coverage` | Calculate and store the code coverage percentage by running the packaged Apex tests included in this package version. | No | |
 | `async-validation` | Return a new package version before completing package validations. | No | |
-| `path` | Path to directory that contains the contents of the package. | No | |
-| `version-name` | Name of the package version to be created. | No | |
-| `version-description` | Description of the package version to be created. | No | |
-| `version-number` | Version number in the format major.minor.patch.build. | No | |
-| `timeout` | Maximum time in minutes to wait for package creation to complete. | No | 60 |
-| `polling-interval` | Time in seconds between status check attempts. | No | 60 |
+| `timeout` | Maximum time in minutes to wait for package creation to complete. Default is 60 minutes (1 hour). | No | 60 |
+| `polling-interval` | Time in seconds between status check attempts. Default is 60 seconds (1 minute). | No | 60 |
 
 ## 📤 Outputs
 
@@ -86,7 +82,7 @@ jobs:
           cache: 'npm'
 
       - name: Create package version
-        uses: mathias-moreira/salesforce-ci-packager
+        uses: mathias-moreira/salesforce-ci-packager@v2
         id: create-package-version
         with:
           auth-url: ${{ secrets.AUTH_URL }}
@@ -105,6 +101,8 @@ jobs:
 
 This action uses the following Salesforce CLI commands:
 
+- `sf package create`: Creates a new package
+- `sf package list`: Lists all packages in the Dev Hub org
 - `sf package version create`: Creates a new package version
 - `sf package version create report`: Checks the status of a package version creation request
 
@@ -129,6 +127,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 💡 **Tip:** Store your `auth-url` as a GitHub secret to keep your credentials secure!
 
 ⭐ If you find this action helpful, consider giving it a star on GitHub!
-
----
-This is a test. Used to test branch protection rules and workflows.
