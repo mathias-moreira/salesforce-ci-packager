@@ -27603,8 +27603,6 @@ const sfPackageVersionCreateReport = async ({jobId}) => {
  * This function uses the Salesforce CLI to authenticate with the org.
  */
 const sfOrgLogin = async ({targetDevHub, authFileName}) => {
-  coreExports.info(`authFilePath: ${authFileName}`);
-  coreExports.info(`targetDevHub: ${targetDevHub}`);
   return await executeCommand({command: `npx @salesforce/cli org login sfdx-url -f ./${authFileName} -a ${targetDevHub} -d --json`});
 };
 
@@ -27674,7 +27672,7 @@ async function pollPackageStatus({jobId, retryCount = 0, pollingInterval = POLLI
     throw new Error(`Package creation failed: ${data.Error}`);
   }
 
-  info(`[${new Date().toLocaleTimeString()}] - Still in progress... Status: ${data.Status}`);
+  coreExports.info(`[${new Date().toLocaleTimeString()}] - Still in progress... Status: ${data.Status}`);
   await new Promise((resolve) => setTimeout(resolve, pollingInterval));
   return pollPackageStatus({jobId, retryCount: retryCount + 1, pollingInterval, maxRetries});
 }
