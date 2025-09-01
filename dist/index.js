@@ -27259,7 +27259,7 @@ const getPackagePath = ({sfdxProjectConfig, packageName}) => {
   // Look for a directory with a package name that matches
   if (sfdxProjectConfig.packageDirectories && sfdxProjectConfig.packageDirectories.length > 0) {
     const packageDirectory = sfdxProjectConfig.packageDirectories.find((packageDirectory) => {
-      return packageDirectory.name === packageName;
+      return packageDirectory.package === packageName;
     });
 
     if (packageDirectory && packageDirectory.path) {
@@ -27352,12 +27352,20 @@ function executeCommand({command}) {
  *   SubscriberPackageVersionId: '04t...'
  * });
  */
-const updatePackageAliases = ({ sfdxProjectConfig, package2Name, versionNumber, subscriberPackageVersionId }) => {
+const updatePackageAliases = ({ sfdxProjectConfig, packageName, versionNumber, packageOrVersionId }) => {
   if (!sfdxProjectConfig.packageAliases) {
     sfdxProjectConfig.packageAliases = {};
   }
 
-  sfdxProjectConfig.packageAliases[package2Name + '@' + versionNumber] = subscriberPackageVersionId;
+  // This is for a new package version
+  if (packageName && versionNumber && packageOrVersionId) {
+    // This is for a new package version
+    sfdxProjectConfig.packageAliases[packageName + '@' + versionNumber] = packageOrVersionId;
+
+  } else if (packageName && packageOrVersionId) {
+    // This is for a new package
+    sfdxProjectConfig.packageAliases[packageName] = packageOrVersionId;
+  }
 
   return sfdxProjectConfig;
 };
@@ -27396,23 +27404,27 @@ const updatePackageAliases = ({ sfdxProjectConfig, package2Name, versionNumber, 
  *     noNamespace: true
  *   });
  */
-const sfPackageCreate = async ({targetDevHub, name, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
+const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
     let command = `npx @salesforce/cli package create --target-dev-hub ${targetDevHub}`;
     
     // Add required parameters
-    if (name) {
-      command += ` --name ${name}`;
+    if (packageName) {
+      command += ` --name ${packageName}`;
     }
     
     if (packageType) {
       command += ` --package-type ${packageType}`;
     }
+
+    if (path) {
+      command += ` --path ${path}`;
+    }
   
-    if (noNamespace === true) {
+    if (noNamespace === 'true') {
       command += ` --no-namespace`;
     }
     
-    if (orgDependent === true) {
+    if (orgDependent === 'true') {
       command += ` --org-dependent`;
     }
     
@@ -27500,14 +27512,14 @@ const sfPackageList = async (targetDevHub) => {
  * @example
  * // Create a package version with installation key
  * const result = await sfPackageVersionCreate({
- *   packageId: '0Ho1A0000000001',
+ *   packageName: 'MyPackage',
  *   targetDevHub: 'DevHub',
  *   installationKey: 'MySecureKey123',
  *   codeCoverage: 'true'
  * });
  */
-async function sfPackageVersionCreate({packageId, targetDevHub, installationKeyBypass, installationKey, skipValidation, codeCoverage, asyncValidation}) {
-    let command = `npx @salesforce/cli package version create --package ${packageId} --target-dev-hub ${targetDevHub}`;
+async function sfPackageVersionCreate({packageName, targetDevHub, installationKeyBypass, installationKey, skipValidation, codeCoverage, asyncValidation}) {
+    let command = `npx @salesforce/cli package version create --package ${packageName} --target-dev-hub ${targetDevHub}`;
     
     // Add installation key bypass option if provided
     if (installationKeyBypass === 'true') {
@@ -27699,27 +27711,27 @@ const readJsonFile = ({filePath}) => {
  * @async
  * @function checkIfPackageExists
  * @param {Object} params - Parameters for checking package existence
- * @param {string} params.packageId - The ID, name, or alias of the package to check
+ * @param {string} params.packageName - The name of the package to check
  * @param {string} params.targetDevHub - The Dev Hub org alias or username to check against
  * @returns {Promise<boolean>} True if the package exists, false otherwise
  * @throws {Error} If package list retrieval fails or if the command execution fails
  * 
  * @example
- * // Check if a package exists by ID
+ * // Check if a package exists by name
  * try {
  *   const exists = await checkIfPackageExists({
- *     packageId: '0Ho1A0000000001',
+ *     packageName: 'MyPackage',
  *     targetDevHub: 'DevHub'
  *   });
  */
-const checkIfPackageExists = async ({ packageId, targetDevHub }) => {
+const checkIfPackageExists = async ({ packageName, targetDevHub }) => {
     const packages = await sfPackageList(targetDevHub);
   
     if (packages.status !== 0) {
       throw new Error('Failed to get packages');
     }
   
-    return packages.result.some((pkg) => pkg.Id === packageId || pkg.Name === packageId || pkg.Alias === packageId );
+    return packages.result.some((pkg) => pkg.Name === packageName);
   };
 
 /**
@@ -27761,7 +27773,8 @@ const SFDX_PROJECT_JSON$1 = 'sfdx-project.json';
  * @property {string} packagingDirectory - Directory containing the packaging files
  * @property {string} authUrl - Salesforce authentication URL
  * @property {string} targetDevHub - Target Dev Hub org alias
- * @property {string} packageId - Package ID or alias
+ * @property {string} packageName - Package name
+ * @property {string} packageType - Package type (Managed or Unlocked)
  * @property {string} installationKeyBypass - Whether to bypass installation key requirement
  * @property {string} installationKey - Installation key for the package
  * @property {string} skipValidation - Whether to skip validation during package creation
@@ -27811,10 +27824,17 @@ const validateInputs = () => {
       return null;
     }
   
-    // Validate package ID
-    const packageId = coreExports.getInput('package');
-    if (!packageId) {
-      coreExports.setFailed('Package ID or alias is required');
+    // Validate package name
+    const packageName = coreExports.getInput('package-name');
+    if (!packageName) {
+      coreExports.setFailed('Package name is required');
+      return null;
+    }
+
+    // Validate package type
+    const packageType = coreExports.getInput('package-type');
+    if (!packageType || (packageType !== 'Managed' && packageType !== 'Unlocked')) {
+      coreExports.setFailed('Package type is required and must be either "Managed" or "Unlocked"');
       return null;
     }
   
@@ -27861,41 +27881,58 @@ const validateInputs = () => {
   
     // Get additional inputs
     const asyncValidation = coreExports.getInput('async-validation');
+    const noNamespace = coreExports.getInput('no-namespace');
+    
+    // Validate no-namespace is only used with Unlocked packages
+    if (noNamespace === 'true' && packageType !== 'Unlocked') {
+      coreExports.setFailed('The no-namespace parameter is only available for Unlocked packages');
+      return null;
+    }
   
     return {
       packagingDirectory,
       authUrl,
       targetDevHub,
-      packageId,
+      packageName,
+      packageType,
       installationKeyBypass,
       installationKey,
       skipValidation,
       codeCoverage,
       maxRetries,
       pollingIntervalMs,
-      asyncValidation
+      asyncValidation,
+      noNamespace
     };
   };
 
 const createPackage = async (sfdxProjectConfig, inputs) => {
-  const packagePath = getPackagePath(sfdxProjectConfig, inputs.packageId);
+  const packagePath = getPackagePath({sfdxProjectConfig, packageName: inputs.packageName});
   if (!packagePath) {
     throw new Error(
       'No package directory path found in project file. To create a package, please specify the package directory in the sfdx-project.json file.'
     );
   }
 
-  const { targetDevHub, name, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion } = inputs;
+  const { targetDevHub, packageName, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion } = inputs;
 
-  const result = await sfPackageCreate({targetDevHub, name, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion});
+  const result = await sfPackageCreate({targetDevHub, packageName, path: packagePath, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion});
   if (result.status !== 0) {
     throw new Error('Failed to create package: ' + JSON.stringify(result, null, 2));
   }
+
+  const updatedSfdxProjectConfig = updatePackageAliases({
+    sfdxProjectConfig,
+    packageName,
+    packageOrVersionId: result.result.Id,
+  });
+
+  return { packageResult: result.result, updatedSfdxProjectConfig };
 };
 
 const createPackageVersion = async (sfdxProjectConfig, inputs) => {
   const {
-    packageId,
+    packageName,
     targetDevHub,
     installationKeyBypass,
     installationKey,
@@ -27907,7 +27944,7 @@ const createPackageVersion = async (sfdxProjectConfig, inputs) => {
   } = inputs;
 
   const result = await sfPackageVersionCreate({
-    packageId,
+    packageName,
     targetDevHub,
     installationKeyBypass,
     installationKey,
@@ -27927,9 +27964,9 @@ const createPackageVersion = async (sfdxProjectConfig, inputs) => {
   // Update the package aliases in the sfdx-project.json file.
   const updatedSfdxProjectConfig = updatePackageAliases({
     sfdxProjectConfig,
-    package2Name: packageResult.Package2Name,
+    packageName: packageResult.Package2Name,
     versionNumber: packageResult.VersionNumber,
-    subscriberPackageVersionId: packageResult.SubscriberPackageVersionId,
+    packageOrVersionId: packageResult.SubscriberPackageVersionId,
   });
 
   return { packageResult, updatedSfdxProjectConfig };
@@ -27983,13 +28020,14 @@ const setup = async () => {
 const main = async () => {
   try {
     // Setup the environment: validate inputs, change to the packaging directory, retrieve the sfdx project config and authenticate the org.
-    const { sfdxProjectConfig, inputs } = await setup();
+    let { sfdxProjectConfig, inputs} = await setup();
 
     // Check if the package exists
-    const exists = await checkIfPackageExists({ packageId: inputs.packageId, targetDevHub: inputs.targetDevHub });
+    const exists = await checkIfPackageExists({ packageName: inputs.packageName, targetDevHub: inputs.targetDevHub });
     if (!exists) {
       // Create the package because it doesn't exist.
-      await createPackage(sfdxProjectConfig, inputs);
+      const { packageResult, updatedSfdxProjectConfig } = await createPackage(sfdxProjectConfig, inputs);
+      sfdxProjectConfig = updatedSfdxProjectConfig;
     }
 
     // Create the package version for an existing package or for the newly created package.
