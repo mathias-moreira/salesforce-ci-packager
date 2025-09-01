@@ -37,7 +37,7 @@ const createPackageVersion = async (sfdxProjectConfig, inputs) => {
     sfdxProjectConfig,
     packageName: packageResult.Package2Name,
     versionNumber: packageResult.VersionNumber,
-    subscriberPackageVersionId: packageResult.SubscriberPackageVersionId,
+    packageOrVersionId: packageResult.SubscriberPackageVersionId,
   });
 
   return { packageResult, updatedSfdxProjectConfig };

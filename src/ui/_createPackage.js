@@ -1,4 +1,4 @@
-import { getPackagePath } from '@utils';
+import { getPackagePath, updatePackageAliases } from '@utils';
 import { sfPackageCreate } from '@sf';
 
 const createPackage = async (sfdxProjectConfig, inputs) => {
@@ -15,6 +15,14 @@ const createPackage = async (sfdxProjectConfig, inputs) => {
   if (result.status !== 0) {
     throw new Error('Failed to create package: ' + JSON.stringify(result, null, 2));
   }
+
+  const updatedSfdxProjectConfig = updatePackageAliases({
+    sfdxProjectConfig,
+    packageName,
+    packageOrVersionId: result.result.Id,
+  });
+
+  return { packageResult: result.result, updatedSfdxProjectConfig };
 };
 
 export default createPackage;

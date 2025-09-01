@@ -23,12 +23,20 @@
  *   SubscriberPackageVersionId: '04t...'
  * });
  */
-const updatePackageAliases = ({ sfdxProjectConfig, package2Name, versionNumber, subscriberPackageVersionId }) => {
+const updatePackageAliases = ({ sfdxProjectConfig, packageName, versionNumber, packageOrVersionId }) => {
   if (!sfdxProjectConfig.packageAliases) {
     sfdxProjectConfig.packageAliases = {};
   }
 
-  sfdxProjectConfig.packageAliases[package2Name + '@' + versionNumber] = subscriberPackageVersionId;
+  // This is for a new package version
+  if (packageName && versionNumber && packageOrVersionId) {
+    // This is for a new package version
+    sfdxProjectConfig.packageAliases[packageName + '@' + versionNumber] = packageOrVersionId;
+
+  } else if (packageName && packageOrVersionId) {
+    // This is for a new package
+    sfdxProjectConfig.packageAliases[packageName] = packageOrVersionId;
+  }
 
   return sfdxProjectConfig;
 };
