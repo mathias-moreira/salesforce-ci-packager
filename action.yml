@@ -12,11 +12,14 @@ inputs:
   auth-url:
     description: The URL of the Dev Hub org. This is used to create an auth file for the Dev Hub org.
     required: true
-  package:
-    description: Alias of the package to create a version of.
+  package-name:
+    description: Name of the package to create a version of.
     required: true
   target-dev-hub:
     description: Username or alias of the Dev Hub org. Not required if the `target-dev-hub` configuration variable is already set.
+    required: true
+  package-type:
+    description: The type of package to create. It can be either "Managed" or "Unlocked".
     required: true
   packaging-directory:
     description: The directory containing the Salesforce project. If not specified, the action will run in the same directory as the action.
@@ -62,6 +65,11 @@ inputs:
     description: |
       Time in seconds between status check attempts.
       Default is 60 seconds (1 minute).
+    required: false
+  no-namespace:
+    description: |
+      Create the package with no namespace; available only for unlocked packages.
+      This flag is useful when you're migrating an existing org to packages. But use a namespaced package for new metadata.
     required: false
 
 outputs:

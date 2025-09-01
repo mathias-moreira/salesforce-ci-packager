@@ -17,7 +17,8 @@ const SFDX_PROJECT_JSON = 'sfdx-project.json';
  * @property {string} packagingDirectory - Directory containing the packaging files
  * @property {string} authUrl - Salesforce authentication URL
  * @property {string} targetDevHub - Target Dev Hub org alias
- * @property {string} packageId - Package ID or alias
+ * @property {string} packageName - Package name
+ * @property {string} packageType - Package type (Managed or Unlocked)
  * @property {string} installationKeyBypass - Whether to bypass installation key requirement
  * @property {string} installationKey - Installation key for the package
  * @property {string} skipValidation - Whether to skip validation during package creation
@@ -67,10 +68,17 @@ const validateInputs = () => {
       return null;
     }
   
-    // Validate package ID
-    const packageId = getInput('package');
-    if (!packageId) {
-      setFailed('Package ID or alias is required');
+    // Validate package name
+    const packageName = getInput('package-name');
+    if (!packageName) {
+      setFailed('Package name is required');
+      return null;
+    }
+
+    // Validate package type
+    const packageType = getInput('package-type');
+    if (!packageType || (packageType !== 'Managed' && packageType !== 'Unlocked')) {
+      setFailed('Package type is required and must be either "Managed" or "Unlocked"');
       return null;
     }
   
@@ -117,19 +125,28 @@ const validateInputs = () => {
   
     // Get additional inputs
     const asyncValidation = getInput('async-validation');
+    const noNamespace = getInput('no-namespace');
+    
+    // Validate no-namespace is only used with Unlocked packages
+    if (noNamespace === 'true' && packageType !== 'Unlocked') {
+      setFailed('The no-namespace parameter is only available for Unlocked packages');
+      return null;
+    }
   
     return {
       packagingDirectory,
       authUrl,
       targetDevHub,
-      packageId,
+      packageName,
+      packageType,
       installationKeyBypass,
       installationKey,
       skipValidation,
       codeCoverage,
       maxRetries,
       pollingIntervalMs,
-      asyncValidation
+      asyncValidation,
+      noNamespace
     };
   };
 

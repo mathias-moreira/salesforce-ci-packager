@@ -6,27 +6,27 @@ import { sfPackageList } from '@sf';
  * @async
  * @function checkIfPackageExists
  * @param {Object} params - Parameters for checking package existence
- * @param {string} params.packageId - The ID, name, or alias of the package to check
+ * @param {string} params.packageName - The name of the package to check
  * @param {string} params.targetDevHub - The Dev Hub org alias or username to check against
  * @returns {Promise<boolean>} True if the package exists, false otherwise
  * @throws {Error} If package list retrieval fails or if the command execution fails
  * 
  * @example
- * // Check if a package exists by ID
+ * // Check if a package exists by name
  * try {
  *   const exists = await checkIfPackageExists({
- *     packageId: '0Ho1A0000000001',
+ *     packageName: 'MyPackage',
  *     targetDevHub: 'DevHub'
  *   });
  */
-const checkIfPackageExists = async ({ packageId, targetDevHub }) => {
+const checkIfPackageExists = async ({ packageName, targetDevHub }) => {
     const packages = await sfPackageList(targetDevHub);
   
     if (packages.status !== 0) {
       throw new Error('Failed to get packages');
     }
   
-    return packages.result.some((pkg) => pkg.Id === packageId || pkg.Name === packageId || pkg.Alias === packageId );
+    return packages.result.some((pkg) => pkg.Name === packageName);
   };
 
 export default checkIfPackageExists;

@@ -57,13 +57,14 @@ const setup = async () => {
 const main = async () => {
   try {
     // Setup the environment: validate inputs, change to the packaging directory, retrieve the sfdx project config and authenticate the org.
-    const { sfdxProjectConfig, inputs } = await setup();
+    let { sfdxProjectConfig, inputs} = await setup();
 
     // Check if the package exists
-    const exists = await checkIfPackageExists({ packageId: inputs.packageId, targetDevHub: inputs.targetDevHub });
+    const exists = await checkIfPackageExists({ packageName: inputs.packageName, targetDevHub: inputs.targetDevHub });
     if (!exists) {
       // Create the package because it doesn't exist.
-      await createPackage(sfdxProjectConfig, inputs);
+      const { packageResult, updatedSfdxProjectConfig } = await createPackage(sfdxProjectConfig, inputs);
+      sfdxProjectConfig = updatedSfdxProjectConfig;
     }
 
     // Create the package version for an existing package or for the newly created package.
