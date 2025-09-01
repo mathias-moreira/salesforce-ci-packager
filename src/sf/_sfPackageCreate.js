@@ -45,6 +45,10 @@ const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, no
     if (packageType) {
       command += ` --package-type ${packageType}`;
     }
+
+    if (path) {
+      command += ` --path ${path}`;
+    }
   
     if (noNamespace === true) {
       command += ` --no-namespace`;
