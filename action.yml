@@ -66,6 +66,11 @@ inputs:
       Time in seconds between status check attempts.
       Default is 60 seconds (1 minute).
     required: false
+  no-namespace:
+    description: |
+      Create the package with no namespace; available only for unlocked packages.
+      This flag is useful when you're migrating an existing org to packages. But use a namespaced package for new metadata.
+    required: false
 
 outputs:
   package-version-id: # id of output

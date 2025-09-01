@@ -125,6 +125,13 @@ const validateInputs = () => {
   
     // Get additional inputs
     const asyncValidation = getInput('async-validation');
+    const noNamespace = getInput('no-namespace');
+    
+    // Validate no-namespace is only used with Unlocked packages
+    if (noNamespace === 'true' && packageType !== 'Unlocked') {
+      setFailed('The no-namespace parameter is only available for Unlocked packages');
+      return null;
+    }
   
     return {
       packagingDirectory,
@@ -138,7 +145,8 @@ const validateInputs = () => {
       codeCoverage,
       maxRetries,
       pollingIntervalMs,
-      asyncValidation
+      asyncValidation,
+      noNamespace
     };
   };
 

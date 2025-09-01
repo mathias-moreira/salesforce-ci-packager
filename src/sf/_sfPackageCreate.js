@@ -50,7 +50,7 @@ const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, no
       command += ` --path ${path}`;
     }
   
-    if (noNamespace === true) {
+    if (noNamespace === 'true') {
       command += ` --no-namespace`;
     }
     
