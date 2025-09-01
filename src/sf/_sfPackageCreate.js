@@ -34,12 +34,12 @@ import { executeCommand } from '../utils';
  *     noNamespace: true
  *   });
  */
-const sfPackageCreate = async ({targetDevHub, name, packageType, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
+const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
     let command = `npx @salesforce/cli package create --target-dev-hub ${targetDevHub}`;
     
     // Add required parameters
-    if (name) {
-      command += ` --name ${name}`;
+    if (packageName) {
+      command += ` --name ${packageName}`;
     }
     
     if (packageType) {

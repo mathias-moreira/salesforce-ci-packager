@@ -17,7 +17,7 @@ const SFDX_PROJECT_JSON = 'sfdx-project.json';
  * @property {string} packagingDirectory - Directory containing the packaging files
  * @property {string} authUrl - Salesforce authentication URL
  * @property {string} targetDevHub - Target Dev Hub org alias
- * @property {string} packageId - Package ID or alias
+ * @property {string} packageName - Package name
  * @property {string} installationKeyBypass - Whether to bypass installation key requirement
  * @property {string} installationKey - Installation key for the package
  * @property {string} skipValidation - Whether to skip validation during package creation
@@ -67,10 +67,12 @@ const validateInputs = () => {
       return null;
     }
   
-    // Validate package ID
-    const packageId = getInput('package');
-    if (!packageId) {
-      setFailed('Package ID or alias is required');
+    // Validate package name
+    const packageName = getInput('package-name');
+    if (!packageName) {
+      setFailed('Package name is required');
+      return null;
+    }
       return null;
     }
   
@@ -122,7 +124,7 @@ const validateInputs = () => {
       packagingDirectory,
       authUrl,
       targetDevHub,
-      packageId,
+      packageName,
       installationKeyBypass,
       installationKey,
       skipValidation,

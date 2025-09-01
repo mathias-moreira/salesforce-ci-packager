@@ -3,7 +3,7 @@ import { pollPackageStatus, updatePackageAliases } from '@utils';
 
 const createPackageVersion = async (sfdxProjectConfig, inputs) => {
   const {
-    packageId,
+    packageName,
     targetDevHub,
     installationKeyBypass,
     installationKey,
@@ -15,7 +15,7 @@ const createPackageVersion = async (sfdxProjectConfig, inputs) => {
   } = inputs;
 
   const result = await sfPackageVersionCreate({
-    packageId,
+    packageName,
     targetDevHub,
     installationKeyBypass,
     installationKey,
@@ -35,7 +35,7 @@ const createPackageVersion = async (sfdxProjectConfig, inputs) => {
   // Update the package aliases in the sfdx-project.json file.
   const updatedSfdxProjectConfig = updatePackageAliases({
     sfdxProjectConfig,
-    package2Name: packageResult.Package2Name,
+    packageName: packageResult.Package2Name,
     versionNumber: packageResult.VersionNumber,
     subscriberPackageVersionId: packageResult.SubscriberPackageVersionId,
   });

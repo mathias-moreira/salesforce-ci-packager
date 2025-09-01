@@ -60,7 +60,7 @@ const main = async () => {
     const { sfdxProjectConfig, inputs } = await setup();
 
     // Check if the package exists
-    const exists = await checkIfPackageExists({ packageId: inputs.packageId, targetDevHub: inputs.targetDevHub });
+    const exists = await checkIfPackageExists({ packageName: inputs.packageName, targetDevHub: inputs.targetDevHub });
     if (!exists) {
       // Create the package because it doesn't exist.
       await createPackage(sfdxProjectConfig, inputs);

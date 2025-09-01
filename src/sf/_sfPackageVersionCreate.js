@@ -27,14 +27,14 @@ import { executeCommand } from '../utils';
  * @example
  * // Create a package version with installation key
  * const result = await sfPackageVersionCreate({
- *   packageId: '0Ho1A0000000001',
+ *   packageName: 'MyPackage',
  *   targetDevHub: 'DevHub',
  *   installationKey: 'MySecureKey123',
  *   codeCoverage: 'true'
  * });
  */
-async function sfPackageVersionCreate({packageId, targetDevHub, installationKeyBypass, installationKey, skipValidation, codeCoverage, asyncValidation}) {
-    let command = `npx @salesforce/cli package version create --package ${packageId} --target-dev-hub ${targetDevHub}`;
+async function sfPackageVersionCreate({packageName, targetDevHub, installationKeyBypass, installationKey, skipValidation, codeCoverage, asyncValidation}) {
+    let command = `npx @salesforce/cli package version create --package ${packageName} --target-dev-hub ${targetDevHub}`;
     
     // Add installation key bypass option if provided
     if (installationKeyBypass === 'true') {

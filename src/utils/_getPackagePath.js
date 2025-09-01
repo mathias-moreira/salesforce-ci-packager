@@ -11,7 +11,7 @@ const getPackagePath = ({sfdxProjectConfig, packageName}) => {
   // Look for a directory with a package name that matches
   if (sfdxProjectConfig.packageDirectories && sfdxProjectConfig.packageDirectories.length > 0) {
     const packageDirectory = sfdxProjectConfig.packageDirectories.find((packageDirectory) => {
-      return packageDirectory.name === packageName;
+      return packageDirectory.package === packageName;
     });
 
     if (packageDirectory && packageDirectory.path) {

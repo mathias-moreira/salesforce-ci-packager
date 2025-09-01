@@ -12,8 +12,8 @@ inputs:
   auth-url:
     description: The URL of the Dev Hub org. This is used to create an auth file for the Dev Hub org.
     required: true
-  package:
-    description: Alias of the package to create a version of.
+  package-name:
+    description: Name of the package to create a version of.
     required: true
   target-dev-hub:
     description: Username or alias of the Dev Hub org. Not required if the `target-dev-hub` configuration variable is already set.
