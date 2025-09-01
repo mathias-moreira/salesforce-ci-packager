@@ -189,7 +189,7 @@ on:
 
 env:
   PACKAGING_DIRECTORY: ./salesforce-project
-  PACKAGE_ID: MyUnlockedPackage
+  PACKAGE_NAME: MyUnlockedPackage
   TARGET_DEV_HUB: DevHub
 
 jobs:
@@ -231,7 +231,8 @@ jobs:
         with:
           auth-url: ${{ secrets.AUTH_URL }}
           packaging-directory: ${{ env.PACKAGING_DIRECTORY }}
-          package: ${{ env.PACKAGE_ID }}
+          package-name: ${{ env.PACKAGE_NAME }}
+          package-type: Unlocked
           target-dev-hub: ${{ env.TARGET_DEV_HUB }}
           installation-key-bypass: true
           code-coverage: true

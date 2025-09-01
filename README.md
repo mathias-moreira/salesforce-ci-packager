@@ -29,7 +29,8 @@ Creating and managing Salesforce 2GP packages can be time-consuming and error-pr
 | Name | Description | Required | Default |
 |------|-------------|----------|---------|
 | `auth-url` | The URL of the Dev Hub org. This is used to create an auth file for the Dev Hub org. | Yes | |
-| `package` | Alias of the package to create a version of. | Yes | |
+| `package-name` | Name of the package to create a version of. | Yes | |
+| `package-type` | The type of package to create. It can be either "Managed" or "Unlocked". | Yes | |
 | `target-dev-hub` | Username or alias of the Dev Hub org. | Yes | |
 | `packaging-directory` | The directory containing the Salesforce project. If not specified, the action will run in the same directory as the action. | No | |
 | `installation-key-bypass` | Bypass the installation key requirement. (either --installation-key or --installation-key-bypass is required). If you bypass this requirement, anyone can install your package. | No | |
@@ -39,6 +40,7 @@ Creating and managing Salesforce 2GP packages can be time-consuming and error-pr
 | `async-validation` | Return a new package version before completing package validations. | No | |
 | `timeout` | Maximum time in minutes to wait for package creation to complete. Default is 60 minutes (1 hour). | No | 60 |
 | `polling-interval` | Time in seconds between status check attempts. Default is 60 seconds (1 minute). | No | 60 |
+| `no-namespace` | Create the package with no namespace; available only for unlocked packages. This flag is useful when you're migrating an existing org to packages. But use a namespaced package for new metadata. | No | |
 
 ## 📤 Outputs
 
@@ -63,7 +65,7 @@ on:
   workflow_dispatch:
 
 env:
-  PACKAGE_ID: MyPackage
+  PACKAGE_NAME: MyPackage
   TARGET_DEV_HUB: DevHub
 
 jobs:
@@ -86,7 +88,8 @@ jobs:
         id: create-package-version
         with:
           auth-url: ${{ secrets.AUTH_URL }}
-          package: ${{ env.PACKAGE_ID }}
+          package-name: ${{ env.PACKAGE_NAME }}
+          package-type: Unlocked
           target-dev-hub: ${{ env.TARGET_DEV_HUB }}
           installation-key-bypass: true
           code-coverage: true
