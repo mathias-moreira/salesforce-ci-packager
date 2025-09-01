@@ -54,7 +54,7 @@ const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, no
       command += ` --no-namespace`;
     }
     
-    if (orgDependent === true) {
+    if (orgDependent === 'true') {
       command += ` --org-dependent`;
     }
     
