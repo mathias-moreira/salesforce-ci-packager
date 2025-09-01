@@ -18,6 +18,9 @@ inputs:
   target-dev-hub:
     description: Username or alias of the Dev Hub org. Not required if the `target-dev-hub` configuration variable is already set.
     required: true
+  package-type:
+    description: The type of package to create. It can be either "Managed" or "Unlocked".
+    required: true
   packaging-directory:
     description: The directory containing the Salesforce project. If not specified, the action will run in the same directory as the action.
     required: false

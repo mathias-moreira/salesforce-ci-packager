@@ -18,6 +18,7 @@ const SFDX_PROJECT_JSON = 'sfdx-project.json';
  * @property {string} authUrl - Salesforce authentication URL
  * @property {string} targetDevHub - Target Dev Hub org alias
  * @property {string} packageName - Package name
+ * @property {string} packageType - Package type (Managed or Unlocked)
  * @property {string} installationKeyBypass - Whether to bypass installation key requirement
  * @property {string} installationKey - Installation key for the package
  * @property {string} skipValidation - Whether to skip validation during package creation
@@ -73,6 +74,11 @@ const validateInputs = () => {
       setFailed('Package name is required');
       return null;
     }
+
+    // Validate package type
+    const packageType = getInput('package-type');
+    if (!packageType || (packageType !== 'Managed' && packageType !== 'Unlocked')) {
+      setFailed('Package type is required and must be either "Managed" or "Unlocked"');
       return null;
     }
   
@@ -125,6 +131,7 @@ const validateInputs = () => {
       authUrl,
       targetDevHub,
       packageName,
+      packageType,
       installationKeyBypass,
       installationKey,
       skipValidation,
