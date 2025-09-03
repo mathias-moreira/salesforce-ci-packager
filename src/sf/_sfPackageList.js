@@ -1,4 +1,4 @@
-import { executeCommand } from '../utils';
+import { executeCommand } from '@cli';
 
 /**
  * Retrieves a list of packages from the specified Dev Hub org

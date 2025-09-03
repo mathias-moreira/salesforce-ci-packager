@@ -1,5 +1,4 @@
-import { executeCommand } from '../utils';
-import { info } from '@actions/core';
+import { executeCommand } from '@cli';
 
 /**
  * Authorizes a Salesforce org using the authentication file

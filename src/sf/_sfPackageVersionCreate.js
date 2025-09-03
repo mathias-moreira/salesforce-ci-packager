@@ -1,4 +1,4 @@
-import { executeCommand } from '../utils';
+import { executeCommand } from '@cli';
 /**
  * Creates a new Salesforce package version for the specified package ID
  *

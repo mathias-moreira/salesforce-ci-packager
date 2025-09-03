@@ -18,6 +18,7 @@ const config = {
       entries: [
         { find: '@utils', replacement: path.resolve(__dirname, 'src/utils') },
         { find: '@sf', replacement: path.resolve(__dirname, 'src/sf') },
+        { find: '@cli', replacement: path.resolve(__dirname, 'src/cli') },
         { find: '@ui', replacement: path.resolve(__dirname, 'src/ui') }
       ]
     }),
