@@ -39,7 +39,7 @@ import { executeCommand } from '@cli';
  * }
  */
 const sfPackageList = async (targetDevHub) => {
-    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub ${targetDevHub} --verbose --json`});
+    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub "${targetDevHub}" --verbose --json`});
 }
 
 export default sfPackageList;

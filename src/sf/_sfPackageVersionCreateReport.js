@@ -26,7 +26,7 @@ import { executeCommand } from '@cli';
  * });
  */
 const sfPackageVersionCreateReport = async ({jobId}) => {
-  return await executeCommand({command: `npx @salesforce/cli package version create report -i ${jobId} --json`});
+  return await executeCommand({command: `npx @salesforce/cli package version create report -i "${jobId}" --json`});
 }
 
 export default sfPackageVersionCreateReport;

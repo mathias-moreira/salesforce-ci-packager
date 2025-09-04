@@ -34,7 +34,7 @@ import { executeCommand } from '@cli';
  * This function uses the Salesforce CLI to authenticate with the org.
  */
 const sfOrgLogin = async ({targetDevHub, authFileName}) => {
-  return await executeCommand({command: `npx @salesforce/cli org login sfdx-url -f ./${authFileName} -a ${targetDevHub} -d --json`});
+  return await executeCommand({command: `npx @salesforce/cli org login sfdx-url -f "${authFileName}" -a "${targetDevHub}" -d --json`});
 };
 
 export default sfOrgLogin;
