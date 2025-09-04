@@ -1,4 +1,4 @@
-import { executeCommand } from '../utils';
+import { executeCommand } from '@cli';
 /**
  * Creates a new Salesforce package version for the specified package ID
  *
@@ -34,7 +34,7 @@ import { executeCommand } from '../utils';
  * });
  */
 async function sfPackageVersionCreate({packageName, targetDevHub, installationKeyBypass, installationKey, skipValidation, codeCoverage, asyncValidation}) {
-    let command = `npx @salesforce/cli package version create --package ${packageName} --target-dev-hub ${targetDevHub}`;
+    let command = `npx @salesforce/cli package version create --package "${packageName}" --target-dev-hub "${targetDevHub}"`;
     
     // Add installation key bypass option if provided
     if (installationKeyBypass === 'true') {

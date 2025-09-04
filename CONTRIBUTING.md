@@ -172,6 +172,28 @@ This action can be developed and tested locally using [act](https://github.com/n
 
 This will use the workflow defined in `.github/workflows/local-development.yml` to test the action locally.
 
+#### Local Development Workflow Options
+
+The local development workflow provides several options to customize your testing environment:
+
+1. **Branch Selection**: By default, the workflow uses your current branch. If you want to test against the master branch, you can uncomment the appropriate section in the workflow file:
+   ```yaml
+   # Uncommment this to checkout the master branch of the current repository.
+   # If you are working on a branch, leave it commented to pick the most recent changes.
+   # with:
+   #   ref: master
+   ```
+
+2. **Custom sfdx-project.json**: The repository includes a template `sfdx-project.json` file that you can use for testing. If you want to use this file instead of the one in the Salesforce project repository, you can uncomment the appropriate section:
+   ```yaml
+   # Uncomment this to copy the sfdx-project.json on the current directory to the packaging-automation-tests directory
+   # This is useful when you are working on the sfdx-project.json file and want to test the action with your changes.
+   # - name: Copy sfdx-project.json to packaging-automation-tests directory
+   #   run: |
+   #     rm -rf ${{ env.PACKAGING_DIRECTORY }}/sfdx-project.json
+   #     cp sfdx-project.json ${{ env.PACKAGING_DIRECTORY }}
+   ```
+
 ### 🔄 Testing with External Salesforce Projects
 
 When developing or testing this action, you'll often need to use a Salesforce project from a different repository. Below is a complete example workflow that demonstrates how to use this action with a Salesforce project located in a separate repository:
@@ -263,6 +285,18 @@ jobs:
 |--------|-------------|
 | `npm run build` | Builds the action using Rollup, creating a bundled JavaScript file in the `dist` directory |
 | `npm start` | Runs the action locally using act with the local development workflow |
+
+## 📄 Project Files
+
+### sfdx-project.json
+
+The repository includes a template `sfdx-project.json` file that can be used for testing and development purposes. This file defines:
+
+- Package directories and their configurations
+- Package aliases for referencing in commands
+- API version and other Salesforce project settings
+
+You can use this template as a starting point for your own package configurations or copy it to the test Salesforce project directory as described in the Local Development Workflow Options.
 
 ---
 

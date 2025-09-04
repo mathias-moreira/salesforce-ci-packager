@@ -27273,61 +27273,6 @@ const getPackagePath = ({sfdxProjectConfig, packageName}) => {
 };
 
 /**
- * @module execute-command
- * @description A utility module that provides a Promise-based wrapper for executing Salesforce CLI commands that return JSON output
- */
-
-
-/**
- * Executes a Salesforce CLI command and processes its JSON output
- * 
- * @async
- * @function executeCommand
- * @param {Object} params - The parameters for command execution
- * @param {string} params.command - The Salesforce CLI command to execute (must include --json flag)
- * @returns {Promise<Object>} A promise that resolves with the parsed command result from Salesforce CLI
- * @property {number} status - The exit code of the command (0 for success)
- * @property {Object} result - The parsed result data from the command output
- * @throws {Object} Rejects with the parsed error output when command fails with non-zero status
- * @throws {Error} Rejects with parsing error if JSON parsing fails
- * @throws {Error} Rejects with execution error if command execution fails
- * 
- * @example
- * // Execute a Salesforce CLI command
- *   const result = await executeCommand({
- *     command: 'npx @salesforce/cli package version create --package MyPackage --json'
- *   });
- * 
- * @remarks
- * This utility is specifically designed to work with Salesforce CLI commands that return JSON output.
- * Always include the --json flag in your commands to ensure proper parsing.
- * The function resolves with the complete parsed JSON output from the CLI command.
- * If the command returns a non-zero status, the promise will reject with the parsed error output.
- */
-function executeCommand({command}) {
-    return new Promise((resolve, reject) => {
-        try {
-            exec$1(command, (error, stdout, stderr) => {
-                try {
-                    const parsedOutput = JSON.parse(stdout);
-    
-                    if (parsedOutput.status !== 0) {
-                        reject(parsedOutput);
-                    }
-    
-                    resolve(parsedOutput);
-                } catch (error) {
-                    reject(error);
-                }
-            });
-            
-        } catch (error) {
-            reject(error);      
-        }
-    });
-}
-
-/**
  * Updates the package aliases in the sfdx-project.json file with the new package version
  *
  * @function updatePackageAliases
@@ -27371,6 +27316,62 @@ const updatePackageAliases = ({ sfdxProjectConfig, packageName, versionNumber, p
 };
 
 /**
+ * @module execute-command
+ * @description A utility module that provides a Promise-based wrapper for executing Salesforce CLI commands that return JSON output
+ */
+
+
+/**
+ * Executes a Salesforce CLI command and processes its JSON output
+ * 
+ * @async
+ * @function executeCommand
+ * @param {Object} params - The parameters for command execution
+ * @param {string} params.command - The Salesforce CLI command to execute (must include --json flag)
+ * @returns {Promise<Object>} A promise that resolves with the parsed command result from Salesforce CLI
+ * @property {number} status - The exit code of the command (0 for success)
+ * @property {Object} result - The parsed result data from the command output
+ * @throws {Object} Rejects with the parsed error output when command fails with non-zero status
+ * @throws {Error} Rejects with parsing error if JSON parsing fails
+ * @throws {Error} Rejects with execution error if command execution fails
+ * 
+ * @example
+ * // Execute a Salesforce CLI command
+ *   const result = await executeCommand({
+ *     command: 'npx @salesforce/cli package version create --package MyPackage --json'
+ *   });
+ * 
+ * @remarks
+ * This utility is specifically designed to work with Salesforce CLI commands that return JSON output.
+ * Always include the --json flag in your commands to ensure proper parsing.
+ * The function resolves with the complete parsed JSON output from the CLI command.
+ * If the command returns a non-zero status, the promise will reject with the parsed error output.
+ */
+function executeCommand({command}) {
+    return new Promise((resolve, reject) => {
+        try {
+            coreExports.debug('Executing command: ' + command);
+            exec$1(command, (error, stdout, stderr) => {
+                try {
+                    const parsedOutput = JSON.parse(stdout);
+    
+                    if (parsedOutput.status !== 0) {
+                        reject(parsedOutput);
+                    }
+    
+                    resolve(parsedOutput);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+            
+        } catch (error) {
+            reject(error);      
+        }
+    });
+}
+
+/**
  * Creates a new package in the Dev Hub org
  *
  * @async
@@ -27405,7 +27406,7 @@ const updatePackageAliases = ({ sfdxProjectConfig, packageName, versionNumber, p
  *   });
  */
 const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
-    let command = `npx @salesforce/cli package create --target-dev-hub ${targetDevHub}`;
+    let command = `npx @salesforce/cli package create --target-dev-hub "${targetDevHub}"`;
     
     // Add required parameters
     if (packageName) {
@@ -27481,7 +27482,7 @@ const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, no
  * }
  */
 const sfPackageList = async (targetDevHub) => {
-    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub ${targetDevHub} --verbose --json`});
+    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub "${targetDevHub}" --verbose --json`});
 };
 
 /**
@@ -27519,7 +27520,7 @@ const sfPackageList = async (targetDevHub) => {
  * });
  */
 async function sfPackageVersionCreate({packageName, targetDevHub, installationKeyBypass, installationKey, skipValidation, codeCoverage, asyncValidation}) {
-    let command = `npx @salesforce/cli package version create --package ${packageName} --target-dev-hub ${targetDevHub}`;
+    let command = `npx @salesforce/cli package version create --package "${packageName}" --target-dev-hub "${targetDevHub}"`;
     
     // Add installation key bypass option if provided
     if (installationKeyBypass === 'true') {
@@ -27578,7 +27579,7 @@ async function sfPackageVersionCreate({packageName, targetDevHub, installationKe
  * });
  */
 const sfPackageVersionCreateReport = async ({jobId}) => {
-  return await executeCommand({command: `npx @salesforce/cli package version create report -i ${jobId} --json`});
+  return await executeCommand({command: `npx @salesforce/cli package version create report -i "${jobId}" --json`});
 };
 
 /**
@@ -27615,7 +27616,7 @@ const sfPackageVersionCreateReport = async ({jobId}) => {
  * This function uses the Salesforce CLI to authenticate with the org.
  */
 const sfOrgLogin = async ({targetDevHub, authFileName}) => {
-  return await executeCommand({command: `npx @salesforce/cli org login sfdx-url -f ./${authFileName} -a ${targetDevHub} -d --json`});
+  return await executeCommand({command: `npx @salesforce/cli org login sfdx-url -f "${authFileName}" -a "${targetDevHub}" -d --json`});
 };
 
 /**

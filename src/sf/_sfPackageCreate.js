@@ -1,4 +1,4 @@
-import { executeCommand } from '../utils';
+import { executeCommand } from '@cli';
 
 /**
  * Creates a new package in the Dev Hub org
@@ -35,7 +35,7 @@ import { executeCommand } from '../utils';
  *   });
  */
 const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
-    let command = `npx @salesforce/cli package create --target-dev-hub ${targetDevHub}`;
+    let command = `npx @salesforce/cli package create --target-dev-hub "${targetDevHub}"`;
     
     // Add required parameters
     if (packageName) {

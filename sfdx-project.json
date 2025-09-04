@@ -1,0 +1,23 @@
+{
+    "packageDirectories": [
+      {
+        "path": "force-app/",
+        "default": true
+      },
+      {
+        "versionName": "ver 0.1",
+        "versionNumber": "0.1.0.NEXT",
+        "path": "force-app/",
+        "default": false,
+        "package": "MyUnlockedPackage",
+        "versionDescription": "This is a test package."
+      }
+    ],
+    "packageAliases": {
+      "MyUnlockedPackageX": "0HogL0000000Va5SAE",
+      "MyUnlockedPackageX@0.1.0.1": "04tgL0000005sEHQAY"
+    },
+    "name": "packaging-automation-tests",
+    "sfdcLoginUrl": "https://login.salesforce.com",
+    "sourceApiVersion": "64.0"
+  }

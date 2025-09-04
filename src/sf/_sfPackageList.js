@@ -1,4 +1,4 @@
-import { executeCommand } from '../utils';
+import { executeCommand } from '@cli';
 
 /**
  * Retrieves a list of packages from the specified Dev Hub org
@@ -39,7 +39,7 @@ import { executeCommand } from '../utils';
  * }
  */
 const sfPackageList = async (targetDevHub) => {
-    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub ${targetDevHub} --verbose --json`});
+    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub "${targetDevHub}" --verbose --json`});
 }
 
 export default sfPackageList;

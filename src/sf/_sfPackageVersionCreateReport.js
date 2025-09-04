@@ -1,4 +1,4 @@
-import { executeCommand } from '../utils';
+import { executeCommand } from '@cli';
 
 /**
  * Retrieves the status of a package version creation job
@@ -26,7 +26,7 @@ import { executeCommand } from '../utils';
  * });
  */
 const sfPackageVersionCreateReport = async ({jobId}) => {
-  return await executeCommand({command: `npx @salesforce/cli package version create report -i ${jobId} --json`});
+  return await executeCommand({command: `npx @salesforce/cli package version create report -i "${jobId}" --json`});
 }
 
 export default sfPackageVersionCreateReport;
