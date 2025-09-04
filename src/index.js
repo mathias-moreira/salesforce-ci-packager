@@ -73,7 +73,7 @@ const main = async () => {
     writeFileSync(SFDX_PROJECT_JSON, JSON.stringify(updatedSfdxProjectConfig, null, 2));
 
     setOutput('message', 'Package version created successfully');
-    setOutput('package-version-id', packageResult.Id);    
+    setOutput('package-version-id', packageResult.SubscriberPackageVersionId);    
     setOutput('package-version-number', packageResult.VersionNumber);
     setOutput('package-report', JSON.stringify(packageResult, null, 2));
 
