@@ -1,4 +1,4 @@
-import { executeCommand } from '../utils';
+import { executeCommand } from '@cli';
 
 /**
  * Creates a new package in the Dev Hub org

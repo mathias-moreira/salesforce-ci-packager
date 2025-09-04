@@ -15,8 +15,9 @@ jobs:
     steps:
       - name: Checkout current repository
         uses: actions/checkout@v4
-        with:
-          ref: master
+        # Uncommment this to checkout the master branch of the current repository. If you are working on a branch, leave it commented to pick the most recent changes.
+        # with:
+        #   ref: master
 
       
       - name: Checkout packaging-automation-tests repository
@@ -32,6 +33,12 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
+      # Uncomment this to copy the sfdx-project.json on the current directory to the packaging-automation-tests directory and use it instead of the one in the salesforce project repository.
+      # This is useful when you are working on the sfdx-project.json file and want to test the action with your changes.
+      # - name: Copy sfdx-project.json to packaging-automation-tests directory
+      #   run: |
+      #     rm -rf ${{ env.PACKAGING_DIRECTORY }}/sfdx-project.json
+      #     cp sfdx-project.json ${{ env.PACKAGING_DIRECTORY }}
 
       - name: Create package version
         uses: ./

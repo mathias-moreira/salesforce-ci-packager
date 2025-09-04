@@ -1,3 +1,5 @@
 node_modules
 .secrets
 .DS_Store
+.sfdx
+.sf

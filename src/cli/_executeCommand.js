@@ -54,4 +54,4 @@ function executeCommand({command}) {
     });
 }
 
-export default executeCommand;
+export { executeCommand };
