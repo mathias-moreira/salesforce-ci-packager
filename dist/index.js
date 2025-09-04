@@ -27350,6 +27350,7 @@ const updatePackageAliases = ({ sfdxProjectConfig, packageName, versionNumber, p
 function executeCommand({command}) {
     return new Promise((resolve, reject) => {
         try {
+            coreExports.debug('Executing command: ' + command);
             exec$1(command, (error, stdout, stderr) => {
                 try {
                     const parsedOutput = JSON.parse(stdout);
@@ -27405,7 +27406,7 @@ function executeCommand({command}) {
  *   });
  */
 const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
-    let command = `npx @salesforce/cli package create --target-dev-hub ${targetDevHub}`;
+    let command = `npx @salesforce/cli package create --target-dev-hub "${targetDevHub}"`;
     
     // Add required parameters
     if (packageName) {
@@ -27481,7 +27482,7 @@ const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, no
  * }
  */
 const sfPackageList = async (targetDevHub) => {
-    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub ${targetDevHub} --verbose --json`});
+    return await executeCommand({command: `npx @salesforce/cli package list --target-dev-hub "${targetDevHub}" --verbose --json`});
 };
 
 /**
@@ -27519,7 +27520,7 @@ const sfPackageList = async (targetDevHub) => {
  * });
  */
 async function sfPackageVersionCreate({packageName, targetDevHub, installationKeyBypass, installationKey, skipValidation, codeCoverage, asyncValidation}) {
-    let command = `npx @salesforce/cli package version create --package ${packageName} --target-dev-hub ${targetDevHub}`;
+    let command = `npx @salesforce/cli package version create --package "${packageName}" --target-dev-hub "${targetDevHub}"`;
     
     // Add installation key bypass option if provided
     if (installationKeyBypass === 'true') {
@@ -27578,7 +27579,7 @@ async function sfPackageVersionCreate({packageName, targetDevHub, installationKe
  * });
  */
 const sfPackageVersionCreateReport = async ({jobId}) => {
-  return await executeCommand({command: `npx @salesforce/cli package version create report -i ${jobId} --json`});
+  return await executeCommand({command: `npx @salesforce/cli package version create report -i "${jobId}" --json`});
 };
 
 /**
@@ -27615,7 +27616,7 @@ const sfPackageVersionCreateReport = async ({jobId}) => {
  * This function uses the Salesforce CLI to authenticate with the org.
  */
 const sfOrgLogin = async ({targetDevHub, authFileName}) => {
-  return await executeCommand({command: `npx @salesforce/cli org login sfdx-url -f ./${authFileName} -a ${targetDevHub} -d --json`});
+  return await executeCommand({command: `npx @salesforce/cli org login sfdx-url -f "${authFileName}" -a "${targetDevHub}" -d --json`});
 };
 
 /**

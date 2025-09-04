@@ -35,7 +35,7 @@ import { executeCommand } from '@cli';
  *   });
  */
 const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, noNamespace, orgDependent, errorNotificationUsername, apiVersion}) => {
-    let command = `npx @salesforce/cli package create --target-dev-hub ${targetDevHub}`;
+    let command = `npx @salesforce/cli package create --target-dev-hub "${targetDevHub}"`;
     
     // Add required parameters
     if (packageName) {
