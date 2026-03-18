@@ -27410,15 +27410,15 @@ const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, no
     
     // Add required parameters
     if (packageName) {
-      command += ` --name ${packageName}`;
+      command += ` --name "${packageName}"`;
     }
     
     if (packageType) {
-      command += ` --package-type ${packageType}`;
+      command += ` --package-type "${packageType}"`;
     }
 
     if (path) {
-      command += ` --path ${path}`;
+      command += ` --path "${path}"`;
     }
   
     if (noNamespace === 'true') {
@@ -27430,11 +27430,11 @@ const sfPackageCreate = async ({targetDevHub, packageName, packageType, path, no
     }
     
     if (errorNotificationUsername) {
-      command += ` --error-notification-username ${errorNotificationUsername}`;
+      command += ` --error-notification-username "${errorNotificationUsername}"`;
     }
     
     if (apiVersion) {
-      command += ` --api-version ${apiVersion}`;
+      command += ` --api-version "${apiVersion}"`;
     }
     
     // Always return JSON output
